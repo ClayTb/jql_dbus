@@ -5,7 +5,7 @@ brief: 关于wifi控制流程的函数接口
 */
 /*1. 检查所有连接，看有没有特定连接(tikong-wifi)的名字 check_exist*/
 gboolean
-Wifi::check_exist (const char *ssid)
+check_exist (const char *ssid)
 {
 	GDBusProxy *proxy;
     gboolean found = FALSE;
