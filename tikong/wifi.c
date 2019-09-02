@@ -4,7 +4,9 @@ date: 2019-8-29
 brief: 关于wifi控制流程的函数接口
 */
 /*1. 检查所有连接，看有没有特定连接(tikong-wifi)的名字 check_exist*/
-gboolean
+
+#include "wifi.h"
+ gboolean
 check_exist (const char *ssid)
 {
 	GDBusProxy *proxy;
@@ -128,7 +130,7 @@ remove_wifi_connection(const char *ssid)
 }
 
 /*4. 连接wifi函数 connect_wifi()*/
-static gboolean
+ gboolean
 connect_wifi()
 {
     GDBusProxy *proxy;
@@ -157,7 +159,7 @@ connect_wifi()
 
 /*5. 断开wifi函数 disconn_wifi()*/
 //断开wifi
-static gboolean
+ gboolean
 disconn_wifi(const char *device_path)
 {
 
@@ -195,7 +197,7 @@ disconn_wifi(const char *device_path)
 }
 
 /*6. 测试网络连通性函数 check_conn()*/
-static gboolean
+ gboolean
 check_connectivity()
 {
 	int ret = -1;

@@ -4,12 +4,10 @@ author: matt ji
 date: 2019-8-29
 brief: 通过dbus接口来控制wifi
 v1.0 2019-8-26
-gcc -Wall tkwifi.c -o tkwifi `pkg-config --cflags --libs libnm uuid`
+gcc -Wall tkwifi.c wifi.c wifi-fun.c -o tkwifi `pkg-config --cflags --libs libnm uuid`
 */
 
 
-
-//1. wifi控制
 /*
 6个接口：
 1. 检查所有连接，看有没有特定连接(tikong-wifi)的名字 check_exist
@@ -32,25 +30,18 @@ int
 main (int argc, char *argv[])
 {
     gboolean found = FALSE;
-    found = check_exist();
+    found = check_exist(SSID);
     if(found == TRUE)
     {
         //remove_connection();        
     }
     else if(found == FALSE)
     {
-        add_wifi_connection();
+        add_wifi_connection(CON_NAME);
     }
     //enable wifi connection
     connect_wifi();
-    //cpp
-    Wifi wifi{DISCONN};
-    
-    //bluetooth part
-    
-    //wifi part
-    
-    
+        
     return 0;
 }
 //===========测试程序结束=========

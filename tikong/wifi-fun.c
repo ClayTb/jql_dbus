@@ -3,7 +3,7 @@ author: matt ji
 date: 2019-8-29
 brief: 关于wifi控制的底层接口
 */
-
+#include "wifi-fun.h"
 char PATH[100]={};
 
 char *
@@ -19,7 +19,7 @@ nm_utils_uuid_generate (void)
 }
 
 /*add_wifi_connection->add_connection*/
-static void
+ void
 add_connection (GDBusProxy *proxy, const char *con_name)
 {
 	GVariantBuilder connection_builder;
@@ -147,7 +147,7 @@ Object path of the new connection that was just added.
 }
 
 
-static gboolean
+ gboolean
 get_active_connection_details (const char *obj_path, const char *ssid)
 {
 	GDBusProxy *props_proxy;
@@ -225,7 +225,7 @@ out:
 }
 
 /*check_exist->find_tk_wifi*/
-static gboolean
+ gboolean
 find_tk_wifi (GDBusProxy *proxy, const char *ssid)
 {
 	int i;
@@ -280,7 +280,7 @@ OUT:
 }
 
 //最终删除连接的函数
-static gboolean
+ gboolean
 remove(const char *obj_path)
 {
     GDBusProxy *props_proxy;
@@ -329,7 +329,7 @@ out:
 
 /*connect_wifi -> find_tk_conn*/
 //找到tikong所对应的的connection的路径，然后才能activeate
-static gboolean
+ gboolean
 find_tk_conn(GDBusProxy *proxy)
 {
 	int i;
@@ -385,8 +385,7 @@ find_tk_conn(GDBusProxy *proxy)
 		//g_variant_lookup(item,);
 		//g_print("%i\n",j);
 		//j++;
-		g_print(path);
-		g_print("\n");
+        printf("%s\n", path);
 		//這裏再去確認这个path是不是wifi接口
 		found = is_wifi(path);
 
@@ -426,13 +425,13 @@ find_tk_conn(GDBusProxy *proxy)
     return found;
 }
 
-static gboolean
+ gboolean
 enable_conn(const char *device_path)
 {
 	GDBusProxy *proxy;
     gboolean found = FALSE;
     GError *error = NULL;
-    g_print("then connect %s\n", SSID);
+    //g_print("then connect %s\n", SSID);
 
 	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
 	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
@@ -460,7 +459,7 @@ enable_conn(const char *device_path)
     return TRUE;
 }
 
-static gboolean 
+ gboolean 
 is_wifi(const char *obj_path)
 {
     GDBusProxy *props_proxy;
