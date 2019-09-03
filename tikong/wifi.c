@@ -158,7 +158,6 @@ connect_wifi()
 }
 
 /*5. 断开wifi函数 disconn_wifi()*/
-//断开wifi
  gboolean
 disconn_wifi(const char *device_path)
 {
@@ -196,12 +195,12 @@ disconn_wifi(const char *device_path)
     return TRUE;
 }
 
-/*6. 测试网络连通性函数 check_conn()*/
+/*6. 测试网络连通性函数 check_connectivity()*/
  gboolean
 check_connectivity()
 {
 	int ret = -1;
-	ret = system("ping 192.168.1.150 -c 1");
+	ret = system("ping 192.168.1.1 -c 1");
 	if(ret == 0)
 	{
 		return TRUE;

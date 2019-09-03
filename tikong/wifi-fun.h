@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+extern char WIFIDEVICE[];
 char *
 nm_utils_uuid_generate (void);
 

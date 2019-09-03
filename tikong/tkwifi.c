@@ -33,7 +33,7 @@ main (int argc, char *argv[])
     found = check_exist(SSID);
     if(found == TRUE)
     {
-        //remove_connection();        
+        //remove_wifi_connection(SSID);        
     }
     else if(found == FALSE)
     {
@@ -41,6 +41,11 @@ main (int argc, char *argv[])
     }
     //enable wifi connection
     connect_wifi();
+    sleep(5);
+    check_connectivity();
+    sleep(3);
+    //使用完之后，断连wifi
+    disconn_wifi(WIFIDEVICE);
         
     return 0;
 }

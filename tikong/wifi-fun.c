@@ -5,6 +5,7 @@ brief: 关于wifi控制的底层接口
 */
 #include "wifi-fun.h"
 char PATH[100]={};
+char WIFIDEVICE[100]={};
 
 char *
 nm_utils_uuid_generate (void)
@@ -200,7 +201,7 @@ get_active_connection_details (const char *obj_path, const char *ssid)
     
     gboolean foundTk = FALSE;
 	/* Dump the configuration to stdout */
-	if(strstr(id, ssid) != NULL)
+	if(strstr(id, ssid) != NULL )
 	{
 		g_print ("%s <=> %s\n", id, obj_path);
 		g_print ("%s <=> %s\n", id, type);
@@ -395,16 +396,8 @@ find_tk_conn(GDBusProxy *proxy)
 			//找到wifi接口的path之后，先disconn连接
 			//disconn_wifi(path);
 			//sleep(5);
-			enable_conn(path);
-			//found = check_conn();
-			if(TRUE == found)
-			{
-				g_print("network is OK\n");
-			}
-			else
-			{
-				g_print("network isn't OK\n");
-			}
+            memcpy(WIFIDEVICE,path,strlen(path));
+			enable_conn(path);			
 		}
 	}
 	//凡是指針都要釋放
