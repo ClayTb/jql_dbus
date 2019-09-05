@@ -1,9 +1,9 @@
 
+/*gcc `pkg-config --cflags glib-2.0 gio-2.0` -o bt bt-dbus.c `pkg-config --libs glib-2.0 gio-2.0`*/
 #include "bt-dbus.h"
 
-
 GDBusConnection *conn;
-static const gchar* bluez_adapter_get_property(const gchar *path, const char *name)
+static GVariant* bluez_adapter_get_property(const gchar *path, const char *name)
 {
 	GVariant *prop;
 	GDBusProxy *proxy;
@@ -34,10 +34,12 @@ static const gchar* bluez_adapter_get_property(const gchar *path, const char *na
 
 	g_variant_get(result, "(v)", &prop);
 	g_variant_unref(result);
-	return g_variant_get_string(prop, NULL);
+    //return g_variant_get_string(prop, NULL);
+    return prop;
+
 }
 
-int main(void)
+int get_bt(void)
 {
 	int rc = 0;
 	GDBusProxy *proxy;
@@ -93,9 +95,20 @@ int main(void)
 			while(g_variant_iter_next(&ii, "{&s@a{sv}}", &interface_name, &properties)) {
                 //g_strstr_len 查找字符串，g_ascii_strdown 将大写转换成小写
 				if(g_strstr_len(g_ascii_strdown(interface_name, -1), -1, "adapter"))
+                {
+                    g_print("%s\n", object_path);
                     //name 返回 raspberrypi address返回B8:27:EB:9F:30:A9
-					g_print("HCI Name: %s Address: %s\n", bluez_adapter_get_property(object_path, "Name"), bluez_adapter_get_property(object_path, "Address"));
-				g_variant_unref(properties);
+                    GVariant *ret;
+                    ret = bluez_adapter_get_property(object_path, "Name");
+                    g_print("HCI Name: %s\n",g_variant_get_string(ret, NULL));
+                    ret = bluez_adapter_get_property(object_path, "Address");
+                    g_print("Address: %s\n",g_variant_get_string(ret, NULL));
+                    ret = bluez_adapter_get_property(object_path, "Discoverable");
+                    g_print("Discoverable: %s\n",(g_variant_get_boolean (ret)?"True":"False"));
+                    ret = bluez_adapter_get_property(object_path, "DiscoverableTimeout");
+                    g_print("DiscoverableTimeout: %d\n",g_variant_get_uint32(ret));
+				}
+                g_variant_unref(properties);
 			}
 			g_variant_unref(ifaces_and_properties);
 		}
