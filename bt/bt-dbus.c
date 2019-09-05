@@ -1,43 +1,6 @@
 
 /*gcc `pkg-config --cflags glib-2.0 gio-2.0` -o bt bt-dbus.c `pkg-config --libs glib-2.0 gio-2.0`*/
-#include "bt-dbus.h"
-
-GDBusConnection *conn;
-static GVariant* bluez_adapter_get_property(const gchar *path, const char *name)
-{
-	GVariant *prop;
-	GDBusProxy *proxy;
-	GError *error = NULL;
-	GVariant *result;
-
-	proxy = g_dbus_proxy_new_sync(conn,
-				      G_DBUS_PROXY_FLAGS_NONE,
-				      NULL,
-				      "org.bluez",
-				      path,
-				      "org.freedesktop.DBus.Properties",
-				      NULL,
-				      &error);
-	if(error != NULL)
-		return NULL;
-
-	error = NULL;
-	result = g_dbus_proxy_call_sync(proxy,
-					"Get",
-					g_variant_new("(ss)", "org.bluez.Adapter1", name),
-					G_DBUS_CALL_FLAGS_NONE,
-					-1,
-					NULL,
-					&error);
-	if(error != NULL)
-		return NULL;
-
-	g_variant_get(result, "(v)", &prop);
-	g_variant_unref(result);
-    //return g_variant_get_string(prop, NULL);
-    return prop;
-
-}
+#include "bt-fun.h"
 
 int get_bt(void)
 {
@@ -105,6 +68,10 @@ int get_bt(void)
                     g_print("Address: %s\n",g_variant_get_string(ret, NULL));
                     ret = bluez_adapter_get_property(object_path, "Discoverable");
                     g_print("Discoverable: %s\n",(g_variant_get_boolean (ret)?"True":"False"));
+                    if(ret == FLASE)
+                    {
+                        bluez_adapter_set_property("Discoverable", g_variant_new("b", TRUE));
+                    }
                     ret = bluez_adapter_get_property(object_path, "DiscoverableTimeout");
                     g_print("DiscoverableTimeout: %d\n",g_variant_get_uint32(ret));
 				}
