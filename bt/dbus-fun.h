@@ -12,6 +12,8 @@
 
 
 int bluez_adapter_set_property(const char *prop, GVariant *value);
-extern GDBusConnection *con;
+extern GDBusConnection *conn;
 GVariant* bluez_adapter_get_property(const gchar *path, const char *name);
+int bluez_adapter_call_method(const char *method);
+
 

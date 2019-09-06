@@ -2,6 +2,7 @@
 author: matt ji
 date: 2019-8-29
 brief: 关于wifi控制流程的函数接口
+test on ubuntu 16.04
 */
 /*1. 检查所有连接，看有没有特定连接(tikong-wifi)的名字 check_exist*/
 

@@ -1,5 +1,5 @@
 #include "dbus-fun.h"
-GDBusConnection *con;
+GDBusConnection *conn;
 
 GVariant* bluez_adapter_get_property(const gchar *path, const char *name)
 {
@@ -42,12 +42,36 @@ int bluez_adapter_set_property(const char *prop, GVariant *value)
 	GVariant *result;
 	GError *error = NULL;
 
-	result = g_dbus_connection_call_sync(con,
+	result = g_dbus_connection_call_sync(conn,
 					     "org.bluez",
 					     "/org/bluez/hci0",
 					     "org.freedesktop.DBus.Properties",
 					     "Set",
 					     g_variant_new("(ssv)", "org.bluez.Adapter1", prop, value),
+					     NULL,
+					     G_DBUS_CALL_FLAGS_NONE,
+					     -1,
+					     NULL,
+					     &error);
+	if(error != NULL)
+		return 1;
+
+	g_variant_unref(result);
+	return 0;
+}
+
+int bluez_adapter_call_method(const char *method)
+{
+	GVariant *result;
+	GError *error = NULL;
+
+	result = g_dbus_connection_call_sync(con,
+					     "org.bluez",
+					/* TODO Find the adapter path runtime */
+					     "/org/bluez/hci0",
+					     "org.bluez.Adapter1",
+					     method,
+					     NULL,
 					     NULL,
 					     G_DBUS_CALL_FLAGS_NONE,
 					     -1,

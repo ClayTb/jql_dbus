@@ -6,7 +6,7 @@ v1.0 2019-9-4
 1. wifi的编译命令
 gcc -Wall bt.c wifi.c wifi-fun.c -o bt `pkg-config --cflags --libs libnm uuid`
 2. 蓝牙的编译命令
-gcc `pkg-config --cflags glib-2.0 gio-2.0` -o bt bt.c bt-dbus.c `pkg-config --libs glib-2.0 gio-2.0`
+gcc `pkg-config --cflags glib-2.0 gio-2.0` -o bt bt.c bt-dbus.c dbus-fun.c `pkg-config --libs glib-2.0 gio-2.0`
 
 */
 /*
@@ -25,6 +25,7 @@ main (int argc, char *argv[])
     if(found == 0)
     {
         g_print("found bluetooth\n");
+        start_bt();
     }
         
     return 0;

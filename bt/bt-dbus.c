@@ -1,6 +1,6 @@
 
 /*gcc `pkg-config --cflags glib-2.0 gio-2.0` -o bt bt-dbus.c `pkg-config --libs glib-2.0 gio-2.0`*/
-#include "bt-fun.h"
+#include "dbus-fun.h"
 
 int get_bt(void)
 {
@@ -68,9 +68,10 @@ int get_bt(void)
                     g_print("Address: %s\n",g_variant_get_string(ret, NULL));
                     ret = bluez_adapter_get_property(object_path, "Discoverable");
                     g_print("Discoverable: %s\n",(g_variant_get_boolean (ret)?"True":"False"));
-                    if(ret == FLASE)
+                    if(g_variant_get_boolean (ret) == FALSE)
                     {
-                        bluez_adapter_set_property("Discoverable", g_variant_new("b", TRUE));
+                        //g_print("not discoverable, set it\n");
+                        //bluez_adapter_set_property("Discoverable", g_variant_new("b", TRUE));
                     }
                     ret = bluez_adapter_get_property(object_path, "DiscoverableTimeout");
                     g_print("DiscoverableTimeout: %d\n",g_variant_get_uint32(ret));
@@ -93,4 +94,14 @@ done:
 		g_error_free(error);
 
 	return rc;
+}
+
+int start_bt(void)
+{
+    //1. set discoverable
+    bluez_adapter_set_property("Discoverable", g_variant_new("b", TRUE));
+    //2. powered
+    bluez_adapter_set_property("Powered", g_variant_new("b", TRUE));
+    //3. 不需要开始查找蓝牙，而是让其他设备来发现树莓派
+    
 }
