@@ -6,12 +6,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+//char   ret[100]=""; 
 extern char WIFIDEVICE[];
 char *
 nm_utils_uuid_generate (void);
 
- void
-add_connection (GDBusProxy *proxy, const char *con_name);
+ gboolean
+//add_connection (GDBusProxy *proxy, const char *con_name);
+add_connection (const char *con_name, char *err);
+
 
  gboolean
 get_active_connection_details (const char *obj_path, const char *ssid);
@@ -26,7 +29,10 @@ remove(const char *obj_path);
 find_tk_conn(GDBusProxy *proxy);
 
  gboolean
-enable_conn(const char *device_path);
+enable_conn(char *err);
 
  gboolean 
 is_wifi(const char *obj_path);
+
+gboolean
+find_hw_fun(GDBusProxy *proxy);

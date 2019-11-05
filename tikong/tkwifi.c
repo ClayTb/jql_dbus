@@ -5,17 +5,34 @@ date: 2019-8-29
 brief: 通过dbus接口来控制wifi
 v1.0 2019-8-26
 gcc -Wall tkwifi.c wifi.c wifi-fun.c -o tkwifi `pkg-config --cflags --libs libnm uuid`
+v2.0 2019-11-5
+1. 重新梳理流程
+2. 也可以做为测试电梯wifi的程序
 */
 
 
 /*
 6个接口：
-1. 检查所有连接，看有没有特定连接(tikong-wifi)的名字 check_exist
-2. 创建连接函数 add_wifi_connection
-3. 删除连接 remove_connection()
+
+
+1. 寻找到wif硬件设备，比如/org/freedesktop/NetworkManager/Devices/0
+2. 检查所有连接，看有没有特定连接(tikong-00013)的名字 check_exist,
+    如果有，就记录下来/org/freedesktop/NetworkManager/Settings/10
+3. 如果没有，创建连接函数 add_wifi_connection, CON_NAME 为tikong-00013与ssid一样
+    不能设置成自动连接，因为如果有好几部电梯，就不知道连的哪一部电梯
 4. 连接wifi函数 connect_wifi()
 5. 断开wifi函数 disconn_wifi()
 6. 测试网络连通性函数 check_conn()
+7. 删除连接 remove_connection()
+
+一. 连接wifi connect_wifi(const char *ssid) return const char *;
+    1. 寻找wifi硬件 find_hw()
+        a. 成功继续进行第二步
+        b. 不成功返回no wifi hardware字符串
+    2. 检查之前是否已经连接过
+        a. 第一次连接 创建连接，add_connect()
+        b。 已经连接过，enable_connect()
+二. 断连wifi dissconnect_wifi()
 
 connect_wifi()
 1. 找到wifi接口设备path/DEVICES/1
@@ -29,24 +46,88 @@ connect_wifi()
 int
 main (int argc, char *argv[])
 {
+    /*
     gboolean found = FALSE;
+    found = find_hw();
+    if(found == TRUE)
+    {
+        printf("found wifi hardware\n");   
+        //return 0;  
+    }
+    else if(found == FALSE)
+    {
+        printf("no wifi hardware, return\n"); 
+        return 1;
+    }
     found = check_exist(SSID);
     if(found == TRUE)
     {
-        //remove_wifi_connection(SSID);        
+        //remove_wifi_connection(SSID);  
+        //enable_conn(path);      
+        printf("found wifi ssid\n");  
     }
     else if(found == FALSE)
     {
         add_wifi_connection(CON_NAME);
     }
+    return 0;
     //enable wifi connection
     connect_wifi();
     sleep(5);
-    check_connectivity();
+    //check_connectivity();
     sleep(3);
     //使用完之后，断连wifi
-    disconn_wifi(WIFIDEVICE);
+    //disconn_wifi(WIFIDEVICE);
         
+    return 0;*/
+//
+//将要连接的ssid作为参数传入
+    gboolean status;
+    if(argc != 2)
+    {
+        printf("input ssid\n");
+        return 1;
+    }
+    char ret[100]="";
+    struct timeval start, end;
+
+    //计算时间开始
+    gettimeofday(&start, 0);
+    connect_wifi(argv[1], ret);
+    if(strcmp(ret, "no wifi hardware") == 0)
+    {
+        printf("no wifi hardware\n"); //错误1
+        return 1;
+    }
+    else if(strcmp(ret, "connection enabled") == 0)
+    {
+        printf("%s\n", ret);
+    }
+    else
+    {
+        printf("%s\n", ret);  //各种错误，包括添加连接和使能连接这两个过程中出现的各种错误
+        return 2;
+    }
+    //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
+    check_connectivity(ret);
+    printf("%s\n", ret);
+    //计算时间结束
+    gettimeofday(&end, 0);
+    double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    timeuse /= 1000; // 1000 to ms, 1000000 to seconds
+    printf("timeuse %fms\n", timeuse);
+    sleep(10);
+    //wifi断连
+    status = disconnect_wifi(ret);
+    if(status == TRUE)
+    {
+        printf("disconnet wifi\n");
+    }
+    else
+    {
+        printf("%s\n", ret);
+    }
+
     return 0;
 }
 //===========测试程序结束=========

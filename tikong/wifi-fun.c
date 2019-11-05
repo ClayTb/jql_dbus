@@ -5,6 +5,7 @@ brief: 关于wifi控制的底层接口
 */
 #include "wifi-fun.h"
 char PATH[100]={};
+//wifi device是硬件设备名 /org/freedesktop/NetworkManager/Devices/0 
 char WIFIDEVICE[100]={};
 
 char *
@@ -20,15 +21,38 @@ nm_utils_uuid_generate (void)
 }
 
 /*add_wifi_connection->add_connection*/
- void
-add_connection (GDBusProxy *proxy, const char *con_name)
+ gboolean
+//add_connection (GDBusProxy *proxy, const char *con_name)
+add_connection (const char *con_name, char *err)
 {
+	GDBusProxy *proxy;
+	GError *error = NULL;
+
+	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+	                                       G_DBUS_PROXY_FLAGS_NONE,
+	                                       NULL,
+	                                       NM_DBUS_SERVICE,
+                                           //"/org/freedesktop/NetworkManager/Settings"
+	                                       NM_DBUS_PATH_SETTINGS,
+                                           // "org.freedesktop.NetworkManager.Settings"
+	                                       NM_DBUS_INTERFACE_SETTINGS,
+	                                       NULL, &error);
+	if (!proxy) {
+		g_dbus_error_strip_remote_error (error);
+		g_print ("Could not create NetworkManager D-Bus proxy: %s\n", error->message);
+		strcpy(err, error->message);
+		g_error_free (error);
+		return FALSE;
+	}
+
+
+
 	GVariantBuilder connection_builder;
 	GVariantBuilder setting_builder;
 	char *uuid;
 	const char *new_con_path;
 	GVariant *ret;
-	GError *error = NULL;
 //创建连接的接口是 AddConnection
 /*
 The AddConnection() method
@@ -82,6 +106,7 @@ Object path of the new connection that was just added.
     GVariantBuilder *builder;
     GVariant *value;
 
+//ssid是一个字符数组
     builder = g_variant_builder_new (G_VARIANT_TYPE ("ay"));
     g_variant_builder_add (builder, "y", 't');
     g_variant_builder_add (builder, "y", 'i');
@@ -118,6 +143,7 @@ Object path of the new connection that was just added.
 	g_variant_builder_add (&setting_builder, "{sv}",
 	                       NM_SETTING_IP_CONFIG_METHOD,
 	                       g_variant_new_string (NM_SETTING_IP4_CONFIG_METHOD_AUTO));
+	/*不作为主路由*/
     g_variant_builder_add (&setting_builder, "{sv}",
 	                       NM_SETTING_IP_CONFIG_NEVER_DEFAULT,
 	                       g_variant_new_boolean (TRUE));
@@ -139,17 +165,23 @@ Object path of the new connection that was just added.
 	if (ret) {
 		g_variant_get (ret, "(&o)", &new_con_path);
 		g_print ("Added: %s\n", new_con_path);
+		memcpy(PATH, new_con_path, strlen(new_con_path));
 		g_variant_unref (ret);
+		g_object_unref (proxy);
+		return TRUE;
 	} else {
 		g_dbus_error_strip_remote_error (error);
 		g_print ("Error adding connection: %s\n", error->message);
-		g_clear_error (&error);
+		strcpy(err, error->message);
+		g_clear_error (&error); 
+		g_object_unref (proxy);
+		return FALSE;
 	}
 }
 
 
  gboolean
-get_active_connection_details (const char *obj_path, const char *ssid)
+get_active_connection_details (const char *obj_path, const char *ssido)
 {
 	GDBusProxy *props_proxy;
 	GVariant *ret = NULL, *path_value = NULL;
@@ -188,25 +220,80 @@ get_active_connection_details (const char *obj_path, const char *ssid)
 	}
 
 	g_variant_get (ret, "(@a{sa{sv}})", &path_value);
+	gboolean foundTk = FALSE;
+
 
 	GVariant *s_con = NULL;
 	gboolean found;
-	const char *id, *type;
+	const char  *type, *id;
+	//const gchar *ssid;
+	gchar ssid[100];
+	GVariant *a;
 	s_con = g_variant_lookup_value (path_value, NM_SETTING_CONNECTION_SETTING_NAME, NULL);
-	g_assert (s_con != NULL);
-	found = g_variant_lookup (s_con, NM_SETTING_CONNECTION_ID, "&s", &id);
-	g_assert (found);
 	found = g_variant_lookup (s_con, NM_SETTING_CONNECTION_TYPE, "&s", &type);
 	g_assert (found);
-    
-    gboolean foundTk = FALSE;
-	/* Dump the configuration to stdout */
-	if(strstr(id, ssid) != NULL )
+	found = g_variant_lookup (s_con, NM_SETTING_CONNECTION_ID, "&s", &id);
+	g_assert (found);
+	int length = 0;
+
+	if(strcmp(type, "802-11-wireless") == 0)
 	{
-		g_print ("%s <=> %s\n", id, obj_path);
-		g_print ("%s <=> %s\n", id, type);
-        foundTk = TRUE;
+		//得到802-11-wireless字段
+		GVariant *wireless= NULL;
+		wireless = g_variant_lookup_value (path_value, NM_SETTING_WIRELESS_SETTING_NAME, NULL);
+		//found = g_variant_lookup (wireless, NM_SETTING_WIRELESS_SSID, "^ay", str);  
+		a = g_variant_lookup_value (wireless, NM_SETTING_WIRELESS_SSID, NULL);
+	//	str = g_variant_get_bytestring (ssid);
+    //printf("path %s <==> ssid %s\n", obj_path, str);
+
+		//g_assert (found);
+		
+		GVariantIter  *iter;
+		g_variant_get(a, "ay", &iter);
+		gchar s;
+		while(g_variant_iter_loop(iter, "y", &s))
+		{
+	        ssid[length] = s;
+	        //g_print("%c", s);
+	        length++;
+		}
+		//g_print("length %d %d\n", i, strlen(id));
+		
+		//凡是指針都要釋放
+		g_variant_iter_free(iter);
+		//g_variant_get(a, "^ay", &ssid);
+		//printf("path %s <==> ssid %s\n", obj_path, ssid);
+		//ssid = g_variant_get_bytestring(a);
+		int j = 0;
+		if(length == strlen(ssido))
+		{
+			for(j = 0; j < length; j++)
+			{
+				if(ssid[j] != ssido[j])
+				{
+					break;
+				}
+			}
+		}
+		if(j == length)
+		{
+			printf("path: %s, connection name: %s, ssid: ", obj_path, id);
+		    for(int j = 0; j < length; j++)
+					g_print("%c", ssid[j]);
+			g_print("\n");
+			foundTk = TRUE;
+		}
+    
 	}
+
+    
+   
+	//if(strcmp(id, ssid) == 0 )
+	//{
+    //    foundTk = TRUE;
+	//}
+
+
 
 	/* Connection setting first */
 	//print_setting (NM_SETTING_CONNECTION_SETTING_NAME, s_con);
@@ -215,6 +302,8 @@ get_active_connection_details (const char *obj_path, const char *ssid)
 
 	/* Print out the actual connection details */
 	//g_print(path);
+
+	//g_free(str);
 
 out:
 	if (path_value)
@@ -328,10 +417,10 @@ out:
 }
 
 
-/*connect_wifi -> find_tk_conn*/
-//找到tikong所对应的的connection的路径，然后才能activeate
- gboolean
-find_tk_conn(GDBusProxy *proxy)
+
+
+gboolean
+find_hw_fun(GDBusProxy *proxy)
 {
 	int i;
 	GError *error = NULL;
@@ -354,16 +443,7 @@ find_tk_conn(GDBusProxy *proxy)
 		g_error_free (error);
 		return FALSE;
 	}
-    //g_print("%s\n", ret);
-	//const char *value = NULL;
-	//gboolean enabled = FALSE;
-	//GVariant *version_value;
-	//const char *version = NULL; 
-	//先要得到variant，然後再取
-	//g_variant_get (ret, "(v)", &version_value);
-	//g_variant_unref (ret);
-	//version = g_variant_get_string (version_value, NULL);
-	//g_print(version); 
+
 	GVariant *device_value;
 	g_variant_get(ret, "(v)", &device_value);
 
@@ -382,47 +462,29 @@ find_tk_conn(GDBusProxy *proxy)
 	//g_variant_get_type_string(device_value);
 	//for (i = 0; i < g_variant_n_children(device_value); i++)
 	{
-		//g_variant_get_string(item, NULL);
-		//g_variant_lookup(item,);
-		//g_print("%i\n",j);
-		//j++;
+
         printf("%s\n", path);
 		//這裏再去確認这个path是不是wifi接口
 		found = is_wifi(path);
 
-		//這裏這樣做的目的就是要去enable一個連接，而enable這個連接需要知道这个连接使用的接口的path。
 		if(found == TRUE)
 		{
-			//找到wifi接口的path之后，先disconn连接
-			//disconn_wifi(path);
-			//sleep(5);
             memcpy(WIFIDEVICE,path,strlen(path));
-			enable_conn(path);			
+            break;
 		}
 	}
 	//凡是指針都要釋放
 	g_variant_iter_free(iter);
-	//gsize length = 0;
-	//paths = g_variant_get_bytestring_array (device_value, &length);
-	//g_variant_get (device_value, "a(o)", paths);
-	//printf("%s\n", device_value);
-//	for (i = 0; paths[i]; i++)	
-	//for (i = 0; i < 2; i++)
-	//{
-		//g_print(device_value[i]);
-	//}
-
-	//g_strfreev (paths);
-	//g_variant_unref(device_value);
     
     return found;
 }
 
+/*connect_wifi -> enable_conn*/
  gboolean
-enable_conn(const char *device_path)
+enable_conn(char *err)
 {
+
 	GDBusProxy *proxy;
-    gboolean found = FALSE;
     GError *error = NULL;
     //g_print("then connect %s\n", SSID);
 
@@ -441,15 +503,22 @@ enable_conn(const char *device_path)
     
 	ret = g_dbus_proxy_call_sync (proxy,
                               "ActivateConnection",
-                              g_variant_new ("(ooo)", PATH,device_path,"/"),
+                              g_variant_new ("(ooo)", PATH,WIFIDEVICE,"/"),
                               G_DBUS_CALL_FLAGS_NONE, -1,
                               NULL, &error);
 
-
-	g_object_unref (proxy);
-	//g_object_unref (ret);
-
-    return TRUE;
+	if (ret) {
+		g_variant_unref (ret);
+		g_object_unref (proxy);
+		return TRUE;
+	} else {
+		g_dbus_error_strip_remote_error (error);
+		g_print ("Error adding connection: %s\n", error->message);
+		strcpy(err, error->message);
+		g_clear_error (&error); 
+		g_object_unref (proxy);
+		return FALSE;
+	}
 }
 
  gboolean 
@@ -506,5 +575,10 @@ out:
 	g_object_unref (props_proxy);
     
     return found;	
+}
+
+int get_status()
+{
+	
 }
 
