@@ -577,8 +577,77 @@ out:
     return found;	
 }
 
-int get_status()
+int get_status(char *ret)
 {
-	
+	GDBusProxy *proxy;
+    gboolean found = FALSE;
+
+	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+	                                       G_DBUS_PROXY_FLAGS_NONE,
+	                                       NULL,
+                                           // "org.freedesktop.NetworkManager"
+	                                       NM_DBUS_SERVICE,
+                                           //"/org/freedesktop/NetworkManager"
+	                                       NM_DBUS_PATH,
+                                           //"org.freedesktop.NetworkManager"
+	                                       //NM_DBUS_INTERFACE,
+	                                       "org.freedesktop.DBus.Properties",
+	                                       NULL, NULL);
+	g_assert (proxy != NULL);
+    
+    ret = g_dbus_proxy_call_sync (proxy,
+	                              "Get",
+								//g_variant_new ("(a{sa{sv}})", &connection_builder),
+	                              g_variant_new ("u", "org.freedesktop.NetworkManager","Connectivity"),
+	                              //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
+	                              //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","Version"),
+	                              G_DBUS_CALL_FLAGS_NONE, -1,
+	                              NULL, &error);
+	if (!ret) {
+		g_dbus_error_strip_remote_error (error);
+		g_print ("get failed: %s\n", error->message);
+		g_error_free (error);
+		return FALSE;
+	}
+
+
+	find_hw_fun(proxy);
+    
+	g_object_unref (proxy);
+
+
+	GVariant *ret = NULL, *path_value = NULL;
+	//const char *path = NULL;
+	GError *error = NULL;
+
+
+
+	/* Get the object path of the Connection details */
+	ret = g_dbus_proxy_call_sync (props_proxy,
+	                              "Delete",
+	                              NULL,
+	                              G_DBUS_CALL_FLAGS_NONE, -1,
+	                              NULL, &error);
+	if (!ret) {
+		g_dbus_error_strip_remote_error (error);
+		g_warning ("Failed to get active connection Connection property: %s\n",
+		           error->message);
+		g_error_free (error);
+        g_print("can't remove %s\n", obj_path);
+		goto out;
+	}
+    g_print("remove %s\n", obj_path);
+
+
+out:
+	if (path_value)
+		g_variant_unref (path_value);
+	if (ret)
+		g_variant_unref (ret);
+	g_object_unref (props_proxy);
+    
+    return TRUE;
+
 }
 
