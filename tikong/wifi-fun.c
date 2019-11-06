@@ -89,7 +89,7 @@ Object path of the new connection that was just added.
 	g_variant_builder_add (&setting_builder, "{sv}",
                             //"interface-name"
 	                       NM_SETTING_CONNECTION_INTERFACE_NAME,
-	                       g_variant_new_string ("wlp2s0"));  
+	                       g_variant_new_string (IFACE));  
     //自动连接                        
     g_variant_builder_add (&setting_builder, "{sv}",
                             //"type"

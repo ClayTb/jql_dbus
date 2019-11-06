@@ -7,6 +7,8 @@
 #include <stdio.h>
 
 //char   ret[100]=""; 
+#define IFACE "wlp3s0"
+
 extern char WIFIDEVICE[];
 char *
 nm_utils_uuid_generate (void);

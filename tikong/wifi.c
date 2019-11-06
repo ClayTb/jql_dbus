@@ -267,7 +267,7 @@ check_connectivity(char * err)
 	*/
 	//一种方法，一直去查询dbus的某一个值
 	gboolean status;
-		exec("ifconfig | grep wlp2s0 -A1 | grep -v Link", err);
+		exec("ifconfig | grep wlp3s0 -A1 | grep -v Link", err);
 		printf("%s\n", err);
 		if(strstr(err, "192.168.1") != NULL)
 		{
