@@ -1,3 +1,5 @@
+#ifndef WIFIFUNH
+#define WIFIFUNH
 #include <gio/gio.h>
 #include <uuid/uuid.h>
 #include <string.h>
@@ -6,16 +8,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
 //char   ret[100]=""; 
-#define IFACE "wlp3s0"
+//#define IFACE "wlp3s0"
 
 extern char WIFIDEVICE[];
+
+#ifdef __cplusplus
+extern "C"
+{
+	#endif
 char *
 nm_utils_uuid_generate (void);
 
  gboolean
 //add_connection (GDBusProxy *proxy, const char *con_name);
-add_connection (const char *con_name, char *err);
+add_connection (const char *iface, const char *con_name, const char *pw, char *err);
+
 
 
  gboolean
@@ -40,3 +49,9 @@ gboolean
 find_hw_fun(GDBusProxy *proxy);
 
 gboolean exec(const char* cmd, char *ret);
+//gboolean exec(const char* cmd, char *ret);
+#ifdef __cplusplus
+}
+#endif
+
+#endif

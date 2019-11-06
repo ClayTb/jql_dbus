@@ -46,7 +46,7 @@ CFLAGS    +=
 # The compiling flags used only for C++. 
 # If it is a C program, no need to set these flags. 
 # If it is a C and C++ merging program, set these flags for the C++ parts. 
-CXXFLAGS  := 
+CXXFLAGS  :=  -std=c++11
 CXXFLAGS  += 
 
 IDIR       = -I/usr/include/libnm -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/uuid
@@ -60,7 +60,7 @@ LDFLAGS   +=
 CC      = gcc 
 #CC       = g++
 # The C++ program compiler. Uncomment it to specify yours explicitly. 
-#CXX     = g++ 
+CXX     = g++ 
 
 # Uncomment the 2 lines to compile C programs as C++ ones. 
 #CC      = $(CXX) 

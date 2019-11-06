@@ -4,6 +4,7 @@ date: 2019-8-29
 brief: 关于wifi控制的底层接口
 */
 #include "wifi-fun.h"
+
 char PATH[100]={};
 //wifi device是硬件设备名 /org/freedesktop/NetworkManager/Devices/0 
 char WIFIDEVICE[100]={};
@@ -23,7 +24,9 @@ nm_utils_uuid_generate (void)
 /*add_wifi_connection->add_connection*/
  gboolean
 //add_connection (GDBusProxy *proxy, const char *con_name)
-add_connection (const char *con_name, char *err)
+//add_connection (const char *con_name, char *err)
+add_connection (const char *iface, const char *con_name, const char *pw, char *err)
+
 {
 	GDBusProxy *proxy;
 	GError *error = NULL;
@@ -89,7 +92,7 @@ Object path of the new connection that was just added.
 	g_variant_builder_add (&setting_builder, "{sv}",
                             //"interface-name"
 	                       NM_SETTING_CONNECTION_INTERFACE_NAME,
-	                       g_variant_new_string (IFACE));  
+	                       g_variant_new_string (iface));  
     //自动连接                        
     g_variant_builder_add (&setting_builder, "{sv}",
                             //"type"
@@ -132,7 +135,7 @@ Object path of the new connection that was just added.
 	                       g_variant_new_string ("wpa-psk"));
     g_variant_builder_add (&setting_builder, "{sv}",
 	                       NM_SETTING_WIRELESS_SECURITY_PSK,
-	                       g_variant_new_string ("tikong-4g"));                       
+	                       g_variant_new_string (pw));                       
 
 	g_variant_builder_add (&connection_builder, "{sa{sv}}",
 	                       NM_SETTING_WIRELESS_SECURITY_SETTING_NAME,
@@ -653,8 +656,8 @@ out:
 
 }
 
-#endif
 
+#endif
 
 #include <stdio.h>
 
@@ -674,3 +677,5 @@ gboolean exec(const char* cmd, char *ret) {
     pclose(pipe);
     return TRUE;
 }
+
+//#endif

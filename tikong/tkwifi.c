@@ -42,45 +42,15 @@ connect_wifi()
 */
 
 #include "wifi.h"
+
+//extern "C" gboolean disconnect_wifi(char *err);
+//extern "C" void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret);
+
 //===========测试程序开始=========
 int
 main (int argc, char *argv[])
 {
-    /*
-    gboolean found = FALSE;
-    found = find_hw();
-    if(found == TRUE)
-    {
-        printf("found wifi hardware\n");   
-        //return 0;  
-    }
-    else if(found == FALSE)
-    {
-        printf("no wifi hardware, return\n"); 
-        return 1;
-    }
-    found = check_exist(SSID);
-    if(found == TRUE)
-    {
-        //remove_wifi_connection(SSID);  
-        //enable_conn(path);      
-        printf("found wifi ssid\n");  
-    }
-    else if(found == FALSE)
-    {
-        add_wifi_connection(CON_NAME);
-    }
-    return 0;
-    //enable wifi connection
-    connect_wifi();
-    sleep(5);
-    //check_connectivity();
-    sleep(3);
-    //使用完之后，断连wifi
-    //disconn_wifi(WIFIDEVICE);
-        
-    return 0;*/
-//
+
 //将要连接的ssid作为参数传入
     gboolean status;
     if(argc != 2)
@@ -93,7 +63,8 @@ main (int argc, char *argv[])
 
     //计算时间开始
     gettimeofday(&start, 0);
-    connect_wifi(argv[1], ret);
+    //connect_wifi(argv[1], ret);
+    connect_wifi(argv[1], argv[2], argv[3], ret);
     if(strcmp(ret, "no wifi hardware") == 0)
     {
         printf("no wifi hardware\n"); //错误1
@@ -109,6 +80,7 @@ main (int argc, char *argv[])
         return 2;
     }
     //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
+    /*
     int try = 0;
     while(try < 10)
     {
@@ -120,7 +92,7 @@ main (int argc, char *argv[])
                 try++;
                 sleep(1);
             }
-    }
+    }*/
     printf("%s\n", ret);
     //计算时间结束
     gettimeofday(&end, 0);

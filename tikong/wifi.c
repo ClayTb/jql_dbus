@@ -6,7 +6,10 @@ test on ubuntu 16.04
 */
 /*1. 检查所有连接，看有没有特定连接(tikong-wifi)的名字 check_exist*/
 
+#include "wifi-fun.h"
 #include "wifi.h"
+
+#include <sys/time.h>
 
 /*2. 创建连接函数 add_wifi_connection*/
 int add_wifi_connection(const char *con_name)
@@ -243,6 +246,7 @@ disconnect_wifi(char *err)
     //return TRUE;
 }
 
+
 /*6. 测试网络连通性函数 check_connectivity()*/
 
 //这里如果一连上就去ping会出现connect: Network is unreachable
@@ -266,20 +270,31 @@ check_connectivity(char * err)
 	//增加ping外网的需求，ping150主控
 	*/
 	//一种方法，一直去查询dbus的某一个值
+	/*
+	string cmd = "nmcli c add type wifi con-name tikong-wifi ifname ";
+    	cmd.append(WLAN);
+    	cmd.append(" ssid tikong");
+        //system("nmcli c add type wifi con-name tikong-wifi ifname wlp3s0 ssid tikong");
+        system(cmd.c_str());
+	*/
+
 	gboolean status;
-		exec("ifconfig | grep wlp3s0 -A1 | grep -v Link", err);
-		printf("%s\n", err);
-		if(strstr(err, "192.168.1") != NULL)
-		{
-			return TRUE;
-		}
-	
-		return FALSE;
+	exec("ifconfig | grep wlp3s0 -A1 | grep -v Link", err);
+	//exec("ifconfig | grep wlp3s0 -A1 | grep -v Link");
+	printf("%s\n", err);
+	if(strstr(err, "192.168.1") != NULL)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+	//这里应该提供信号强度
 } 
 
 
 
-void connect_wifi(const char *ssid, char *ret)
+//void connect_wifi(const char *ssid, char *ret)
+void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
 { 
 	
     gboolean err = FALSE;
@@ -307,7 +322,7 @@ void connect_wifi(const char *ssid, char *ret)
     else if(err == FALSE)
     {
     	printf("need establish %s connection\n", ssid);
-        err = add_connection (ssid, ret);
+        err = add_connection (iface, ssid, pw,ret);
         if(err == FALSE)
 	    {
 	    	printf("%s\n", ret); //错误2 已经拷贝进去
