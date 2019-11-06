@@ -58,7 +58,7 @@ LDFLAGS   +=
 ##============================================================================= 
 # The C program compiler. Uncomment it to specify yours explicitly. 
 CC      = gcc 
-
+#CC       = g++
 # The C++ program compiler. Uncomment it to specify yours explicitly. 
 #CXX     = g++ 
 

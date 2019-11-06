@@ -266,43 +266,15 @@ check_connectivity(char * err)
 	//增加ping外网的需求，ping150主控
 	*/
 	//一种方法，一直去查询dbus的某一个值
-	GDBusProxy *proxy;
-    gboolean found = FALSE;
-
-	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
-	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                       G_DBUS_PROXY_FLAGS_NONE,
-	                                       NULL,
-                                           // "org.freedesktop.NetworkManager"
-	                                       NM_DBUS_SERVICE,
-                                           //"/org/freedesktop/NetworkManager"
-	                                       NM_DBUS_PATH,
-                                           //"org.freedesktop.NetworkManager"
-	                                       //NM_DBUS_INTERFACE,
-	                                       "org.freedesktop.DBus.Properties",
-	                                       NULL, NULL);
-	g_assert (proxy != NULL);
-    
-	find_hw_fun(proxy);
-    
-	g_object_unref (proxy);
-
-	int try = 0;
-	while(try < 10)
-	{
-		status = get_status(ret);
-		if (status == 4)
+	gboolean status;
+		exec("ifconfig | grep wlp2s0 -A1 | grep -v Link", err);
+		printf("%s\n", err);
+		if(strstr(err, "192.168.1") != NULL)
 		{
-			break;
+			return TRUE;
 		}
-		try++;
-	}
-	if(try == 10)
-	{
+	
 		return FALSE;
-	}
-
-    return TRUE;
 } 
 
 

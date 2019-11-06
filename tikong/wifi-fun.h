@@ -36,3 +36,5 @@ is_wifi(const char *obj_path);
 
 gboolean
 find_hw_fun(GDBusProxy *proxy);
+
+gboolean exec(const char* cmd, char *ret);

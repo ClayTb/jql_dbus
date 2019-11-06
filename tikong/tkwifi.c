@@ -109,14 +109,25 @@ main (int argc, char *argv[])
         return 2;
     }
     //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
-    check_connectivity(ret);
+    int try = 0;
+    while(try < 10)
+    {
+            status = check_connectivity(ret);
+            if(status == TRUE)
+                break;
+            else
+            {
+                try++;
+                sleep(1);
+            }
+    }
     printf("%s\n", ret);
     //计算时间结束
     gettimeofday(&end, 0);
     double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     timeuse /= 1000; // 1000 to ms, 1000000 to seconds
     printf("timeuse %fms\n", timeuse);
-    sleep(10);
+    sleep(1);
     //wifi断连
     status = disconnect_wifi(ret);
     if(status == TRUE)

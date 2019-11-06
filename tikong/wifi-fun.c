@@ -108,12 +108,13 @@ Object path of the new connection that was just added.
 
 //ssid是一个字符数组
     builder = g_variant_builder_new (G_VARIANT_TYPE ("ay"));
-    g_variant_builder_add (builder, "y", 't');
-    g_variant_builder_add (builder, "y", 'i');
-    g_variant_builder_add (builder, "y", 'k');
-    g_variant_builder_add (builder, "y", 'o');
-    g_variant_builder_add (builder, "y", 'n');
-    g_variant_builder_add (builder, "y", 'g');
+    for(int i = 0; i< strlen(con_name); i++)
+    	g_variant_builder_add (builder, "y", con_name[i]);
+    //g_variant_builder_add (builder, "y", 'i');
+    //g_variant_builder_add (builder, "y", 'k');
+    //g_variant_builder_add (builder, "y", 'o');
+    //g_variant_builder_add (builder, "y", 'n');
+    //g_variant_builder_add (builder, "y", 'g');
     value = g_variant_new ("ay", builder);
     g_variant_builder_unref (builder);
 
@@ -577,6 +578,7 @@ out:
     return found;	
 }
 
+#if 0
 int get_status(char *ret)
 {
 	GDBusProxy *proxy;
@@ -651,3 +653,24 @@ out:
 
 }
 
+#endif
+
+
+#include <stdio.h>
+
+
+gboolean exec(const char* cmd, char *ret) {
+    char buffer[128];
+    FILE* pipe = popen(cmd, "r");
+    if(!pipe)
+    {
+    	strcpy(ret, "popen error");
+    }
+    else{
+        fgets(buffer, sizeof buffer, pipe);
+        strcpy(ret, buffer);
+        
+    } 
+    pclose(pipe);
+    return TRUE;
+}
