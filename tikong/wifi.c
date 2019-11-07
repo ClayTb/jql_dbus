@@ -252,7 +252,7 @@ disconnect_wifi(char *err)
 //这里如果一连上就去ping会出现connect: Network is unreachable
 
  gboolean
-check_connectivity(char * err)
+check_connectivity(const char *iface, char * err)
 {
 /*	int ret = -1;
 	ret = system("ping 192.168.1.1");
@@ -279,7 +279,12 @@ check_connectivity(char * err)
 	*/
 
 	gboolean status;
-	exec("ifconfig | grep wlp3s0 -A1 | grep -v Link", err);
+	char cmd[100]="";
+	strcpy(cmd, "ifconfig | grep ");
+	strcat(cmd, iface);
+	strcat(cmd, " -A1 | grep -v Link");
+	//exec("ifconfig | grep wlp2s0 -A1 | grep -v Link", err);
+	exec(cmd, err);
 	//exec("ifconfig | grep wlp3s0 -A1 | grep -v Link");
 	printf("%s\n", err);
 	if(strstr(err, "192.168.1") != NULL)

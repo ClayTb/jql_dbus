@@ -53,9 +53,9 @@ main (int argc, char *argv[])
 
 //将要连接的ssid作为参数传入
     gboolean status;
-    if(argc != 2)
+    if(argc != 4)
     {
-        printf("input ssid\n");
+        printf("input wlp2s0 tikong tikong-4g \n");
         return 1;
     }
     char ret[100]="";
@@ -64,6 +64,7 @@ main (int argc, char *argv[])
     //计算时间开始
     gettimeofday(&start, 0);
     //connect_wifi(argv[1], ret);
+    //void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret);
     connect_wifi(argv[1], argv[2], argv[3], ret);
     if(strcmp(ret, "no wifi hardware") == 0)
     {
@@ -80,19 +81,22 @@ main (int argc, char *argv[])
         return 2;
     }
     //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
-    /*
+    
     int try = 0;
     while(try < 10)
     {
-            status = check_connectivity(ret);
+            status = check_connectivity(argv[1], ret);
             if(status == TRUE)
+            {
+                printf("got ip address\n");
                 break;
+            }
             else
             {
                 try++;
-                sleep(1);
+                sleep(1.5);
             }
-    }*/
+    }
     printf("%s\n", ret);
     //计算时间结束
     gettimeofday(&end, 0);
