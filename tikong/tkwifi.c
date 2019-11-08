@@ -42,6 +42,11 @@ connect_wifi()
 */
 
 #include "wifi.h"
+#include "stdio.h"
+#include "unistd.h"
+#include <sys/time.h>
+
+//gcc tkwifi.c libtkwifi.a -o tkwifi -lpthread -lnm -lgio-2.0 -lgobject-2.0 -lglib-2.0 -luuid
 
 //extern "C" gboolean disconnect_wifi(char *err);
 //extern "C" void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret);
@@ -52,50 +57,44 @@ main (int argc, char *argv[])
 {
 
 //将要连接的ssid作为参数传入
-    gboolean status;
+    int status;
+    char ret[100]="";
+    status = get_version(ret);
+    printf("cti wifi version %s\n", ret);
     if(argc != 4)
     {
         printf("input wlp2s0 tikong tikong-4g \n");
         return 1;
     }
-    char ret[100]="";
+    
     struct timeval start, end;
 
     //计算时间开始
     gettimeofday(&start, 0);
     //connect_wifi(argv[1], ret);
     //void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret);
-    connect_wifi(argv[1], argv[2], argv[3], ret);
-    if(strcmp(ret, "no wifi hardware") == 0)
-    {
-        printf("no wifi hardware\n"); //错误1
-        return 1;
-    }
-    else if(strcmp(ret, "connection enabled") == 0)
-    {
-        printf("%s\n", ret);
-    }
-    else
+    status = connect_wifi(argv[1], argv[2], argv[3], ret);
+    if(status != 0)
     {
         printf("%s\n", ret);  //各种错误，包括添加连接和使能连接这两个过程中出现的各种错误
-        return 2;
+        return 1;
     }
     //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
     
     int try = 0;
     while(try < 10)
     {
-            status = check_connectivity(argv[1], ret);
-            if(status == TRUE)
-            {
-                printf("got ip address\n");
-                break;
-            }
-            else
-            {
-                try++;
-                sleep(1.5);
-            }
+        status = check_connectivity(argv[1], ret);
+        if(status == 0)
+        {
+            printf("got ip address\n");
+            break;
+        }
+        else
+        {
+            try++;
+            sleep(1.5);
+        }
     }
     printf("%s\n", ret);
     //计算时间结束
@@ -103,10 +102,10 @@ main (int argc, char *argv[])
     double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     timeuse /= 1000; // 1000 to ms, 1000000 to seconds
     printf("timeuse %fms\n", timeuse);
-    sleep(1);
+    sleep(10);
     //wifi断连
-    status = disconnect_wifi(ret);
-    if(status == TRUE)
+    status = disconnect_wifi(argv[1], ret);
+    if(status == 0)
     {
         printf("disconnet wifi\n");
     }

@@ -8,8 +8,13 @@ test on ubuntu 16.04
 
 #include "wifi-fun.h"
 #include "wifi.h"
-
-#include <sys/time.h>
+#include <gio/gio.h>
+#include <uuid/uuid.h>
+#include <string.h>
+#include <nm-dbus-interface.h>
+#include <NetworkManager.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 /*2. 创建连接函数 add_wifi_connection*/
 int add_wifi_connection(const char *con_name)
@@ -195,9 +200,9 @@ find_hw()
 
 
 /*5. 断开wifi函数 disconn_wifi()*/
- gboolean
+ int
 //disconnect_wifi(const char *device_path)
-disconnect_wifi(char *err)
+disconnect_wifi(const char *iface, char *err)
 {
 
 	GDBusProxy *proxy;
@@ -212,7 +217,7 @@ disconnect_wifi(char *err)
                                            // "org.freedesktop.NetworkManager"
 	                                       NM_DBUS_SERVICE,
 	                                       //device_path,
-	                                       WIFIDEVICE,                                          
+	                                       iface,                                          
 	                                       "org.freedesktop.NetworkManager.Device",
 	                                       NULL, NULL);
 	g_assert (proxy != NULL);
@@ -231,14 +236,14 @@ disconnect_wifi(char *err)
 	if (ret) {
 		g_variant_unref (ret);
 		g_object_unref (proxy);
-		return TRUE;
+		return 0;
 	} else {
 		g_dbus_error_strip_remote_error (error);
 		g_print ("Error disconnet wifi: %s\n", error->message);
 		strcpy(err, error->message);
 		g_clear_error (&error); 
 		g_object_unref (proxy);
-		return FALSE;
+		return 1;
 	}
 
 	//g_object_unref (ret);
@@ -251,7 +256,7 @@ disconnect_wifi(char *err)
 
 //这里如果一连上就去ping会出现connect: Network is unreachable
 
- gboolean
+ int
 check_connectivity(const char *iface, char * err)
 {
 /*	int ret = -1;
@@ -289,58 +294,58 @@ check_connectivity(const char *iface, char * err)
 	printf("%s\n", err);
 	if(strstr(err, "192.168.1") != NULL)
 	{
-		return TRUE;
+		return 0;
 	}
 
-	return FALSE;
+	return 1;
 	//这里应该提供信号强度
 } 
 
 
 
 //void connect_wifi(const char *ssid, char *ret)
-void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
+int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
 { 
 	
-    gboolean err = FALSE;
+    gboolean status = FALSE;
 
-    err = find_hw();
-    if(err == TRUE)
+    status = find_hw();
+    if(status == TRUE)
     {
         //printf("found wifi hardware\n");  
-        strcpy(ret,"found wifi hardware"); 
+        //strcpy(ret,"found wifi hardware"); 
     }
-    else if(err == FALSE)
+    else if(status == FALSE)
     {
         printf("no wifi hardware, return\n"); 
         strcpy(ret,"no wifi hardware"); //错误1
-        return;
+        return 1;
     }
     //check_exist函数里会把连接的PATH找到
-    err = check_exist(ssid);
-    if(err == TRUE)
+    status = check_exist(ssid);
+    if(status == TRUE)
     {
         //remove_wifi_connection(SSID);  
         //enable_conn(path);      
         printf("found wifi ssid\n");  
     }
-    else if(err == FALSE)
+    else if(status == FALSE)
     {
     	printf("need establish %s connection\n", ssid);
-        err = add_connection (iface, ssid, pw,ret);
-        if(err == FALSE)
+        status = add_connection (iface, ssid, pw,ret);
+        if(status == FALSE)
 	    {
 	    	printf("%s\n", ret); //错误2 已经拷贝进去
-	        return;
+	        return 2;
 	    }
-	    else if(err == TRUE)
+	    else if(status == TRUE)
 	    {
 	    	printf("add connection ok\n"); 
     	}
     }
     //enable wifi connection
-    err = enable_conn(ret); //错误3
-    if(err == TRUE)
+    status = enable_conn(ret); //错误3
+    if(status == TRUE)
     {
     	strcpy(ret,"connection enabled"); //正确1
     }
@@ -349,6 +354,12 @@ void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret
     	//错误信息已经在enable_conn函数里拷贝到ret里了  //错误3
     }
     //sleep(8);
-    return;
+    return 0;
 
+}
+
+int get_version(char *ver)
+{
+	strcpy(ver, "1.0");
+	return 0;
 }

@@ -60,7 +60,7 @@ LDFLAGS   +=
 CC      = gcc 
 #CC       = g++
 # The C++ program compiler. Uncomment it to specify yours explicitly. 
-CXX     = g++ 
+#CXX     = g++ 
 
 # Uncomment the 2 lines to compile C programs as C++ ones. 
 #CC      = $(CXX) 
