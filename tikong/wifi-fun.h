@@ -34,19 +34,20 @@ get_active_connection_details (const char *obj_path, const char *ssid);
 find_tk_wifi (GDBusProxy *proxy, const char *ssid);
 
  gboolean
-remove(const char *obj_path);
+remove_fun(const char *obj_path, char *err);
 
  gboolean
 find_tk_conn(GDBusProxy *proxy);
 
  gboolean
-enable_conn(char *err);
+active_conn(char *err);
 
  gboolean 
-is_wifi(const char *obj_path);
+is_wifi(const char *obj_path, const char *iface);
 
 gboolean
-find_hw_fun(GDBusProxy *proxy);
+find_hw(const char *iface);
+
 
 gboolean exec(const char* cmd, char *ret);
 //gboolean exec(const char* cmd, char *ret);

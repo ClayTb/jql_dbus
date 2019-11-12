@@ -268,6 +268,7 @@ get_active_connection_details (const char *obj_path, const char *ssido)
 		//g_variant_get(a, "^ay", &ssid);
 		//printf("path %s <==> ssid %s\n", obj_path, ssid);
 		//ssid = g_variant_get_bytestring(a);
+		//ssid里是字符数组，不是放的字符串，所以要循环比对
 		int j = 0;
 		if(length == strlen(ssido))
 		{
@@ -289,9 +290,6 @@ get_active_connection_details (const char *obj_path, const char *ssido)
 		}
     
 	}
-
-    
-   
 	//if(strcmp(id, ssid) == 0 )
 	//{
     //    foundTk = TRUE;
@@ -357,7 +355,8 @@ find_tk_wifi (GDBusProxy *proxy, const char *ssid)
             if(found == TRUE)
             {
             	memcpy(PATH, paths[i], strlen(paths[i]));
-                goto OUT;
+                //goto OUT;
+                break;
             }
 
             /* And print out the details for each active connection */
@@ -375,22 +374,22 @@ OUT:
 
 //最终删除连接的函数
  gboolean
-remove(const char *obj_path)
+remove_fun(const char *obj_path, char *err)
 {
     GDBusProxy *props_proxy;
 	GVariant *ret = NULL, *path_value = NULL;
 	//const char *path = NULL;
 	GError *error = NULL;
 
-
+	gboolean status = TRUE;
 	props_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                             G_DBUS_PROXY_FLAGS_NONE,
-	                                             NULL,
-                                                 //"org.freedesktop.NetworkManager"
-	                                             NM_DBUS_SERVICE,
-	                                             obj_path,
-                                                "org.freedesktop.NetworkManager.Settings.Connection",
-	                                             NULL, NULL);
+                             G_DBUS_PROXY_FLAGS_NONE,
+                             NULL,
+                             //"org.freedesktop.NetworkManager"
+                             NM_DBUS_SERVICE,
+                             obj_path,
+                            "org.freedesktop.NetworkManager.Settings.Connection",
+                             NULL, NULL);
 	g_assert (props_proxy);
 
 	/* Get the object path of the Connection details */
@@ -401,10 +400,13 @@ remove(const char *obj_path)
 	                              NULL, &error);
 	if (!ret) {
 		g_dbus_error_strip_remote_error (error);
-		g_warning ("Failed to get active connection Connection property: %s\n",
-		           error->message);
+		//g_warning ("Failed to delete conn: %s\n",
+		          // error->message);
+		strcpy(err, "Failed to delete conn: ");
+		strcat(err, error->message);
 		g_error_free (error);
         g_print("can't remove %s\n", obj_path);
+        status = FALSE;
 		goto out;
 	}
     g_print("remove %s\n", obj_path);
@@ -417,30 +419,45 @@ out:
 		g_variant_unref (ret);
 	g_object_unref (props_proxy);
     
-    return TRUE;
+    return status;
 }
 
 
-
-
+/*找到硬件路径*/
 gboolean
-find_hw_fun(GDBusProxy *proxy)
+find_hw(const char *iface)
 {
+    GDBusProxy *proxy;
+    gboolean found = FALSE;
+
+	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                   G_DBUS_PROXY_FLAGS_NONE,
+                   NULL,
+                   // "org.freedesktop.NetworkManager"
+                   NM_DBUS_SERVICE,
+                   //"/org/freedesktop/NetworkManager"
+                   NM_DBUS_PATH,
+                   //"org.freedesktop.NetworkManager"
+                   //NM_DBUS_INTERFACE,
+                   "org.freedesktop.DBus.Properties",
+                   NULL, NULL);
+
+	g_assert (proxy != NULL);
 	int i;
 	GError *error = NULL;
 	GVariant *ret;
 	//char **paths;
-	gboolean found = FALSE;
 //这里也可以用GetDevices来得到设备
 	/* Call ListConnections D-Bus method */
 	ret = g_dbus_proxy_call_sync (proxy,
-	                              "Get",
-								//g_variant_new ("(a{sa{sv}})", &connection_builder),
-	                              g_variant_new ("(ss)", "org.freedesktop.NetworkManager","AllDevices"),
-	                              //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
-	                              //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","Version"),
-	                              G_DBUS_CALL_FLAGS_NONE, -1,
-	                              NULL, &error);
+	  "Get",
+	//g_variant_new ("(a{sa{sv}})", &connection_builder),
+	  g_variant_new ("(ss)", "org.freedesktop.NetworkManager","AllDevices"),
+	  //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
+	  //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","Version"),
+	  G_DBUS_CALL_FLAGS_NONE, -1,
+	  NULL, &error);
 	if (!ret) {
 		g_dbus_error_strip_remote_error (error);
 		g_print ("get failed: %s\n", error->message);
@@ -467,9 +484,9 @@ find_hw_fun(GDBusProxy *proxy)
 	//for (i = 0; i < g_variant_n_children(device_value); i++)
 	{
 
-        printf("%s\n", path);
+        printf("check %s\n", path);
 		//這裏再去確認这个path是不是wifi接口
-		found = is_wifi(path);
+		found = is_wifi(path, iface);
 
 		if(found == TRUE)
 		{
@@ -479,32 +496,111 @@ find_hw_fun(GDBusProxy *proxy)
 	}
 	//凡是指針都要釋放
 	g_variant_iter_free(iter);
-    
+        
+
+
+	g_object_unref (proxy);
+
     return found;
 }
 
 /*connect_wifi -> enable_conn*/
  gboolean
-enable_conn(char *err)
+active_conn(char *err)
 {
 
 	GDBusProxy *proxy;
     GError *error = NULL;
+    GVariant *ret = NULL;
+
     //g_print("then connect %s\n", SSID);
 
 	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
 	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                       G_DBUS_PROXY_FLAGS_NONE,
-	                                       NULL,
-                                           // "org.freedesktop.NetworkManager"
-	                                       NM_DBUS_SERVICE,
-                                           //"/org/freedesktop/NetworkManager"
-	                                       NM_DBUS_PATH,                                          
-	                                       "org.freedesktop.NetworkManager",
-	                                       NULL, NULL);
+                           G_DBUS_PROXY_FLAGS_NONE,
+                           NULL,
+                           // "org.freedesktop.NetworkManager"
+                           NM_DBUS_SERVICE,
+                           //"/org/freedesktop/NetworkManager"
+                           NM_DBUS_PATH,                                          
+                           "org.freedesktop.DBus.Properties",
+                           NULL, NULL);
 	g_assert (proxy != NULL);
-	GVariant *ret = NULL;
-    
+    //首先检查WirelessEnabled是否为TRUE
+	//无脑enable，即使原来就是True，也没有问题,set没有返回值
+	//NetworkingEnabled只能读
+	
+	GVariant *value = g_variant_new ("b", TRUE);
+
+	ret = g_dbus_proxy_call_sync (proxy,
+	  "Get",
+	  g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
+	  //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
+	  G_DBUS_CALL_FLAGS_NONE, -1,
+	  NULL, &error);
+	if(ret)
+	{
+		gboolean status = FALSE;
+	    GVariant *v;
+		g_variant_get(ret, "(v)", &v);
+		g_variant_get(v, "b", &status);
+		printf("network %s\n",(status == TRUE) ? "Enabled": "Disabled");
+	}
+	else{
+		g_dbus_error_strip_remote_error (error);
+		strcpy(err, "read network status: ");
+		strcat(err, error->message);
+		g_clear_error (&error); 
+		g_object_unref (proxy);
+		return FALSE;
+	}
+
+	ret = g_dbus_proxy_call_sync (proxy,
+	  "Get",
+	  g_variant_new ("(ss)", "org.freedesktop.NetworkManager","WirelessEnabled"),
+	  G_DBUS_CALL_FLAGS_NONE, -1,
+	  NULL, &error);
+	if(ret)
+	{
+		gboolean status = FALSE;
+	    GVariant *v;
+		g_variant_get(ret, "(v)", &v);
+		g_variant_get(v, "b", &status);
+		printf("wireless %s\n",(status == TRUE) ? "Enabled": "Disabled");
+		if(status == FALSE)
+		{
+			printf("set wireless enabled\n");
+			g_dbus_proxy_call_sync (proxy,
+			  "Set",
+			  g_variant_new ("(ssv)", "org.freedesktop.NetworkManager","WirelessEnabled", value),
+			  G_DBUS_CALL_FLAGS_NONE, -1,
+			  NULL, &error);
+			if(error != NULL)
+			{
+				g_dbus_error_strip_remote_error (error);
+				strcpy(err, "set wireless enable: ");
+				strcat(err, error->message);
+				g_clear_error (&error);
+				g_object_unref (proxy);
+				return FALSE;
+			}
+			sleep(2);
+		}
+	}
+
+	g_object_unref (proxy);
+	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                           G_DBUS_PROXY_FLAGS_NONE,
+                           NULL,
+                           // "org.freedesktop.NetworkManager"
+                           NM_DBUS_SERVICE,
+                           //"/org/freedesktop/NetworkManager"
+                           NM_DBUS_PATH,                                          
+                           "org.freedesktop.NetworkManager",
+                           NULL, NULL);
+	g_assert (proxy != NULL);
+    //接着使能连接
 	ret = g_dbus_proxy_call_sync (proxy,
                               "ActivateConnection",
                               g_variant_new ("(ooo)", PATH,WIFIDEVICE,"/"),
@@ -517,7 +613,7 @@ enable_conn(char *err)
 		return TRUE;
 	} else {
 		g_dbus_error_strip_remote_error (error);
-		g_print ("Error adding connection: %s\n", error->message);
+		g_print ("Error active connection: %s\n", error->message);
 		strcpy(err, error->message);
 		g_clear_error (&error); 
 		g_object_unref (proxy);
@@ -526,7 +622,7 @@ enable_conn(char *err)
 }
 
  gboolean 
-is_wifi(const char *obj_path)
+is_wifi(const char *obj_path, const char *iface)
 {
     GDBusProxy *props_proxy;
 	GVariant *ret = NULL, *path_value = NULL;
@@ -536,20 +632,20 @@ is_wifi(const char *obj_path)
 
 
 	props_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                             G_DBUS_PROXY_FLAGS_NONE,
-	                                             NULL,
-                                                 //"org.freedesktop.NetworkManager"
-	                                             NM_DBUS_SERVICE,
-	                                             obj_path,
-                                                "org.freedesktop.DBus.Introspectable",
-	                                             NULL, NULL);
+                     G_DBUS_PROXY_FLAGS_NONE,
+                     NULL,
+                     //"org.freedesktop.NetworkManager"
+                     NM_DBUS_SERVICE,
+                     obj_path,
+                    "org.freedesktop.DBus.Introspectable",
+                     NULL, NULL);
 	g_assert (props_proxy);
 
 	ret = g_dbus_proxy_call_sync (props_proxy,
-	                              "Introspect",
-	                              NULL,
-	                              G_DBUS_CALL_FLAGS_NONE, -1,
-	                              NULL, &error);
+                  "Introspect",
+                  NULL,
+                  G_DBUS_CALL_FLAGS_NONE, -1,
+                  NULL, &error);
 	if (!ret) {
 		g_dbus_error_strip_remote_error (error);
 		g_warning ("Failed to get Introspect: %s\n",
@@ -567,8 +663,48 @@ is_wifi(const char *obj_path)
 
 	if(strstr(xml, "WirelessCapabilities") != NULL)
 	{
-		g_print ("%s is wifi interface\n", obj_path);
-		found = TRUE;
+		//g_print ("%s is wifi interface\n", obj_path);
+		//首先unref一下，接着再去重新建立
+		g_object_unref (props_proxy);
+		//这里也要去对比iface，要和wlp3s0一样才行
+		props_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                 G_DBUS_PROXY_FLAGS_NONE,
+                 NULL,
+                 //"org.freedesktop.NetworkManager"
+                 NM_DBUS_SERVICE,
+                 obj_path,
+                "org.freedesktop.DBus.Properties",
+                 NULL, NULL);
+		g_assert (props_proxy);
+
+		ret = g_dbus_proxy_call_sync (props_proxy,
+                  "Get",
+                  g_variant_new ("(ss)", "org.freedesktop.NetworkManager.Device","Interface"),
+                  G_DBUS_CALL_FLAGS_NONE, -1,
+                  NULL, &error);
+
+		if (ret) 
+		{
+			GVariant *v = NULL; 
+			const char *name = NULL;
+		    //GVariant *value;
+			g_variant_get (ret, "(v)", &v);
+			g_variant_get(v, "s", &name);
+			if(strcmp(iface, name) == 0)
+			{
+				found = TRUE;
+			}
+		}
+		else
+		{
+			g_dbus_error_strip_remote_error (error);
+			g_warning ("Failed to get Interface: %s\n",
+			           error->message);
+			g_error_free (error);
+	        g_print("can't get interface name %s\n", obj_path);
+			goto out;
+		}
+				
 	}
 
 out:
@@ -602,13 +738,13 @@ int get_status(char *ret)
 	g_assert (proxy != NULL);
     
     ret = g_dbus_proxy_call_sync (proxy,
-	                              "Get",
-								//g_variant_new ("(a{sa{sv}})", &connection_builder),
-	                              g_variant_new ("u", "org.freedesktop.NetworkManager","Connectivity"),
-	                              //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
-	                              //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","Version"),
-	                              G_DBUS_CALL_FLAGS_NONE, -1,
-	                              NULL, &error);
+          "Get",
+		//g_variant_new ("(a{sa{sv}})", &connection_builder),
+          g_variant_new ("u", "org.freedesktop.NetworkManager","Connectivity"),
+          //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
+          //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","Version"),
+          G_DBUS_CALL_FLAGS_NONE, -1,
+          NULL, &error);
 	if (!ret) {
 		g_dbus_error_strip_remote_error (error);
 		g_print ("get failed: %s\n", error->message);

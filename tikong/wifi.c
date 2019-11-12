@@ -16,40 +16,9 @@ test on ubuntu 16.04
 #include <stdlib.h>
 #include <stdio.h>
 
-/*2. 创建连接函数 add_wifi_connection*/
-int add_wifi_connection(const char *con_name)
-{
-    GDBusProxy *proxy;
-	GError *error = NULL;
-
-	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
-	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                       G_DBUS_PROXY_FLAGS_NONE,
-	                                       NULL,
-	                                       NM_DBUS_SERVICE,
-                                           //"/org/freedesktop/NetworkManager/Settings"
-	                                       NM_DBUS_PATH_SETTINGS,
-                                           // "org.freedesktop.NetworkManager.Settings"
-	                                       NM_DBUS_INTERFACE_SETTINGS,
-	                                       NULL, &error);
-	if (!proxy) {
-		g_dbus_error_strip_remote_error (error);
-		g_print ("Could not create NetworkManager D-Bus proxy: %s\n", error->message);
-		g_error_free (error);
-		return 1;
-	}
-
-	/* Add a connection */
-	//add_connection (proxy, con_name);
-
-	g_object_unref (proxy);
-
-	return 0;
-}
-
-/*3. 删除连接 remove_connection()*/
-gboolean
-remove_wifi_connection(const char *ssid)
+/*3. 删除连接 remove_conn()*/
+int
+remove_conn(const char *ssid, char *err)
 {
     GDBusProxy *proxy;
     gboolean found = FALSE;
@@ -71,6 +40,7 @@ remove_wifi_connection(const char *ssid)
 	char **paths;
 
 	/* Call ListConnections D-Bus method */
+	//这里把所有的连接都会列出来
 	ret = g_dbus_proxy_call_sync (proxy,
 	                              "ListConnections",
 	                              NULL,
@@ -79,19 +49,28 @@ remove_wifi_connection(const char *ssid)
 	if (!ret) {
 		g_dbus_error_strip_remote_error (error);
 		g_print ("ListConnections failed: %s\n", error->message);
+		strcpy(err, "ListConnections: ");
+		strcat(err, error->message);
 		g_error_free (error);
-		return FALSE;
+		return 1;
 	}
 
 	g_variant_get (ret, "(^ao)", &paths);
 	g_variant_unref (ret);
 
+//这里删除所有这个ssid上的连接
+	//int match = 0;
+	gboolean status = TRUE;
 	for (i = 0; paths[i]; i++)
     {        
         found = get_active_connection_details (paths[i], ssid);
         if(found == TRUE)
         {
-            remove(paths[i]);
+            status = remove_fun(paths[i], err);
+            if(status == FALSE)
+            {
+            	break;
+            }
         }       
         
     }
@@ -99,35 +78,7 @@ remove_wifi_connection(const char *ssid)
     
 	g_object_unref (proxy);
 
-	return found;
-}
-
-/*4. 连接wifi函数 connect_wifi_fun()*/
- gboolean
-connect_wifi_fun()
-{
-    GDBusProxy *proxy;
-    gboolean found = FALSE;
-
-	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
-	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                       G_DBUS_PROXY_FLAGS_NONE,
-	                                       NULL,
-                                           // "org.freedesktop.NetworkManager"
-	                                       NM_DBUS_SERVICE,
-                                           //"/org/freedesktop/NetworkManager"
-	                                       NM_DBUS_PATH,
-                                           //"org.freedesktop.NetworkManager"
-	                                       //NM_DBUS_INTERFACE,
-	                                       "org.freedesktop.DBus.Properties",
-	                                       NULL, NULL);
-	g_assert (proxy != NULL);
-    
-	//enable_conn(proxy);
-    
-	g_object_unref (proxy);
-
-    return TRUE;
+	return ((status == TRUE) ? 0: 2);
 }
 
 
@@ -139,12 +90,12 @@ check_exist (const char *ssid)
 
 	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
 	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                       G_DBUS_PROXY_FLAGS_NONE,
-	                                       NULL,
-	                                       NM_DBUS_SERVICE,
-	                                       NM_DBUS_PATH_SETTINGS,
-	                                       NM_DBUS_INTERFACE_SETTINGS,
-	                                       NULL, NULL);
+                   G_DBUS_PROXY_FLAGS_NONE,
+                   NULL,
+                   NM_DBUS_SERVICE,
+                   NM_DBUS_PATH_SETTINGS,
+                   NM_DBUS_INTERFACE_SETTINGS,
+                   NULL, NULL);
 	g_assert (proxy != NULL);
 
 	/* List connections of system settings service */
@@ -170,38 +121,9 @@ check_exist (const char *ssid)
 
 
 
-/*找到硬件路径*/
-gboolean
-find_hw()
-{
-    GDBusProxy *proxy;
-    gboolean found = FALSE;
-
-	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
-	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                       G_DBUS_PROXY_FLAGS_NONE,
-	                                       NULL,
-                                           // "org.freedesktop.NetworkManager"
-	                                       NM_DBUS_SERVICE,
-                                           //"/org/freedesktop/NetworkManager"
-	                                       NM_DBUS_PATH,
-                                           //"org.freedesktop.NetworkManager"
-	                                       //NM_DBUS_INTERFACE,
-	                                       "org.freedesktop.DBus.Properties",
-	                                       NULL, NULL);
-	g_assert (proxy != NULL);
-    
-	found = find_hw_fun(proxy);
-    
-	g_object_unref (proxy);
-
-    return found;
-}
-
 
 /*5. 断开wifi函数 disconn_wifi()*/
  int
-//disconnect_wifi(const char *device_path)
 disconnect_wifi(const char *iface, char *err)
 {
 
@@ -212,22 +134,22 @@ disconnect_wifi(const char *iface, char *err)
 
 	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
 	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-	                                       G_DBUS_PROXY_FLAGS_NONE,
-	                                       NULL,
-                                           // "org.freedesktop.NetworkManager"
-	                                       NM_DBUS_SERVICE,
-	                                       //device_path,
-	                                       iface,                                          
-	                                       "org.freedesktop.NetworkManager.Device",
-	                                       NULL, NULL);
+                       G_DBUS_PROXY_FLAGS_NONE,
+                       NULL,
+                       // "org.freedesktop.NetworkManager"
+                       NM_DBUS_SERVICE,
+                       //device_path,
+                       iface,                                          
+                       "org.freedesktop.NetworkManager.Device",
+                       NULL, NULL);
 	g_assert (proxy != NULL);
 	GVariant *ret = NULL;
     
 	ret = g_dbus_proxy_call_sync (proxy,
-                              "Disconnect",
-                              NULL,
-                              G_DBUS_CALL_FLAGS_NONE, -1,
-                              NULL, &error);
+                      "Disconnect",
+                      NULL,
+                      G_DBUS_CALL_FLAGS_NONE, -1,
+                      NULL, &error);
     //const char *value = NULL; 
     //GVariant *value;
 	//g_variant_get (ret, "(o)", &value);
@@ -256,7 +178,7 @@ disconnect_wifi(const char *iface, char *err)
 
 //这里如果一连上就去ping会出现connect: Network is unreachable
 
- int
+int
 check_connectivity(const char *iface, char * err)
 {
 /*	int ret = -1;
@@ -309,7 +231,7 @@ int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
 	
     gboolean status = FALSE;
 
-    status = find_hw();
+    status = find_hw(iface);
     if(status == TRUE)
     {
         //printf("found wifi hardware\n");  
@@ -325,8 +247,6 @@ int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
     status = check_exist(ssid);
     if(status == TRUE)
     {
-        //remove_wifi_connection(SSID);  
-        //enable_conn(path);      
         printf("found wifi ssid\n");  
     }
     else if(status == FALSE)
@@ -344,7 +264,7 @@ int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
     	}
     }
     //enable wifi connection
-    status = enable_conn(ret); //错误3
+    status = active_conn(ret); //错误3
     if(status == TRUE)
     {
     	strcpy(ret,"connection enabled"); //正确1
@@ -352,6 +272,7 @@ int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
     else
     {
     	//错误信息已经在enable_conn函数里拷贝到ret里了  //错误3
+    	return 3;
     }
     //sleep(8);
     return 0;
@@ -360,6 +281,6 @@ int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
 
 int get_version(char *ver)
 {
-	strcpy(ver, "1.0");
+	strcpy(ver, "1.1");
 	return 0;
 }
