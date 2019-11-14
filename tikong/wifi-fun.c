@@ -133,7 +133,7 @@ gboolean
 disc_wifi_fun(char *err)
 {
 	GDBusProxy *proxy;
-    //gboolean found = FALSE;
+    gboolean status = FALSE;
     GError *error = NULL;
 /* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
 	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
@@ -195,9 +195,14 @@ disc_wifi_fun(char *err)
 				return FALSE;
 			}
 		}
+		else
+		{
+			strcpy(err, "current no active connection");
+			status = FALSE;
+		}
 		g_variant_unref (ret);
 		g_object_unref (proxy);
-		return TRUE;
+		return status;
 	} else {
 		g_dbus_error_strip_remote_error (error);
 		g_print ("Error get current active connection %s\n", error->message);

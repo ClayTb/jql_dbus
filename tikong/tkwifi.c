@@ -8,20 +8,7 @@ gcc -Wall tkwifi.c wifi.c wifi-fun.c -o tkwifi `pkg-config --cflags --libs libnm
 v1.0 2019-11-5
 1. 重新梳理流程
 2. 也可以做为测试电梯wifi的程序
-v1.1 2019-11-12
-1. 内部增加使能wifi功能 Done
-2. 内部增加检查wifi iface为指定wlp3s0功能 Done
-3. 对外增加删除wifi连接的接口remove_conn(const char * ssid, char *ret),
-    删除所有这个ssid上的连接 Done
-4. 更新disconnect_wifi逻辑，变为当前iface如果有活动的wifi，断掉 Done
-5. option，disable_auto(),对外增加修改其他ap的auto connect，
-    针对目前小车会建立一个ap的情况，
-    小车会自动连接上这个ap
-    或者直接删除这个ap
-    这个一旦连接上，nmcli conn up Candela可以连接上，
-    但是nmcli dev wifi就不能搜索热点了，因为现在本身是热点模式
-    建议每次开机调用一次，待实现
-5. 对外增加测试信号强度的接口get_signal(const char * ssid, char * signal);
+
 */
 
 
@@ -100,7 +87,7 @@ main (int argc, char *argv[])
     int try = 0;
     while(try < 10)
     {
-        status = check_connectivity(argv[1], ret);
+        status = check_connectivity(argv[1], "192.168.1", ret);
         if(status == 0)
         {
             printf("got ip address\n");

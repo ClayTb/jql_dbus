@@ -154,7 +154,7 @@ disconnect_wifi(const char *iface, char *err)
 //这里如果一连上就去ping会出现connect: Network is unreachable
 
 int
-check_connectivity(const char *iface, char * err)
+check_connectivity(const char *iface, char *ip, char * err)
 {
 /*	int ret = -1;
 	ret = system("ping 192.168.1.1");
@@ -188,8 +188,8 @@ check_connectivity(const char *iface, char * err)
 	//exec("ifconfig | grep wlp2s0 -A1 | grep -v Link", err);
 	exec(cmd, err);
 	//exec("ifconfig | grep wlp3s0 -A1 | grep -v Link");
-	printf("%s\n", err);
-	if(strstr(err, "192.168.1") != NULL)
+	//printf("%s\n", err);
+	if(strstr(err, ip) != NULL)
 	{
 		return 0;
 	}
