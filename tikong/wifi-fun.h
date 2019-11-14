@@ -48,7 +48,11 @@ is_wifi(const char *obj_path, const char *iface);
 gboolean
 find_hw(const char *iface);
 
+gboolean
+find_ap(const char *iface, char *err);
 
+gboolean
+disc_wifi_fun(char *ret);
 gboolean exec(const char* cmd, char *ret);
 //gboolean exec(const char* cmd, char *ret);
 #ifdef __cplusplus

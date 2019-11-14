@@ -13,13 +13,14 @@ v1.1 2019-11-12
 2. 内部增加检查wifi iface为指定wlp3s0功能 Done
 3. 对外增加删除wifi连接的接口remove_conn(const char * ssid, char *ret),
     删除所有这个ssid上的连接 Done
-4. 更新disconnect_wifi逻辑，变为当前iface如果有活动的wifi，断掉
-4. option，disable_auto(),对外增加修改其他ap的auto connect，
+4. 更新disconnect_wifi逻辑，变为当前iface如果有活动的wifi，断掉 Done
+5. option，disable_auto(),对外增加修改其他ap的auto connect，
     针对目前小车会建立一个ap的情况，
     小车会自动连接上这个ap
     或者直接删除这个ap
     这个一旦连接上，nmcli conn up Candela可以连接上，
     但是nmcli dev wifi就不能搜索热点了，因为现在本身是热点模式
+    建议每次开机调用一次，待实现
 5. 对外增加测试信号强度的接口get_signal(const char * ssid, char * signal);
 */
 
@@ -79,7 +80,9 @@ main (int argc, char *argv[])
         printf("input wlp2s0 tikong tikong-4g \n");
         return 1;
     }
-    
+    //disable 
+    //status = disable_auto(ret);
+
     struct timeval start, end;
 
     //计算时间开始
@@ -115,9 +118,9 @@ main (int argc, char *argv[])
     double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     timeuse /= 1000; // 1000 to ms, 1000000 to seconds
     printf("timeuse %fms\n", timeuse);
-    sleep(10);
+    sleep(5);
     //wifi断连
-    /*
+    
     status = disconnect_wifi(argv[1], ret);
     if(status == 0)
     {
@@ -126,12 +129,12 @@ main (int argc, char *argv[])
     else
     {
         printf("%s\n", ret);
-    }*/
-    status = remove_conn(argv[2], ret);
+    }
+    /*status = remove_conn(argv[2], ret);
     if(status != 0)
     {
         printf("%s\n", ret);
-    }
+    }*/
     return 0;
 }
 //===========测试程序结束=========

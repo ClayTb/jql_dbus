@@ -16,6 +16,14 @@ test on ubuntu 16.04
 #include <stdlib.h>
 #include <stdio.h>
 
+
+int disable_auto(const char *iface, char *err)
+{
+	gboolean status = FALSE;
+	status = find_ap(iface, err);
+
+	return ((status == TRUE)?0:1);
+}
 /*3. 删除连接 remove_conn()*/
 int
 remove_conn(const char *ssid, char *err)
@@ -121,56 +129,23 @@ check_exist (const char *ssid)
 
 
 
-
 /*5. 断开wifi函数 disconn_wifi()*/
  int
 disconnect_wifi(const char *iface, char *err)
 {
-
-	GDBusProxy *proxy;
-    //gboolean found = FALSE;
-    GError *error = NULL;
     //g_print("first diconn wifi\n");
-
-	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
-	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                       G_DBUS_PROXY_FLAGS_NONE,
-                       NULL,
-                       // "org.freedesktop.NetworkManager"
-                       NM_DBUS_SERVICE,
-                       //device_path,
-                       iface,                                          
-                       "org.freedesktop.NetworkManager.Device",
-                       NULL, NULL);
-	g_assert (proxy != NULL);
-	GVariant *ret = NULL;
-    
-	ret = g_dbus_proxy_call_sync (proxy,
-                      "Disconnect",
-                      NULL,
-                      G_DBUS_CALL_FLAGS_NONE, -1,
-                      NULL, &error);
-    //const char *value = NULL; 
-    //GVariant *value;
-	//g_variant_get (ret, "(o)", &value);
-	//g_print("return current %s\n", value);
-
-	if (ret) {
-		g_variant_unref (ret);
-		g_object_unref (proxy);
-		return 0;
-	} else {
-		g_dbus_error_strip_remote_error (error);
-		g_print ("Error disconnet wifi: %s\n", error->message);
-		strcpy(err, error->message);
-		g_clear_error (&error); 
-		g_object_unref (proxy);
-		return 1;
-	}
-
-	//g_object_unref (ret);
-
-    //return TRUE;
+    gboolean found = find_hw(iface);
+    gboolean status = FALSE;
+    if(found == TRUE)
+    {
+    	status = disc_wifi_fun(err);
+    	return ((status == TRUE) ? 0: 2);
+    }
+    else
+    {
+    	return 1;
+    }
+	
 }
 
 
