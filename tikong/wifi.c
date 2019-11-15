@@ -147,7 +147,155 @@ disconnect_wifi(const char *iface, char *err)
     }
 	
 }
+int list_connections(const char *ssid, char *err)
+{
+	//取得这个连接的所有信息
+	GDBusProxy *proxy;
+    gboolean found = FALSE;
 
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+	                                       G_DBUS_PROXY_FLAGS_NONE,
+	                                       NULL,
+	                                       NM_DBUS_SERVICE,
+	                                       NM_DBUS_PATH_SETTINGS,
+	                                       NM_DBUS_INTERFACE_SETTINGS,
+	                                       NULL, NULL);
+	g_assert (proxy != NULL);
+    
+    int i;
+	GError *error = NULL;
+	GVariant *ret;
+	char **paths;
+
+	/* Call ListConnections D-Bus method */
+	ret = g_dbus_proxy_call_sync (proxy,
+	                              "ListConnections",
+	                              NULL,
+	                              G_DBUS_CALL_FLAGS_NONE, -1,
+	                              NULL, &error);
+	if (!ret) {
+		g_dbus_error_strip_remote_error (error);
+		g_print ("ListConnections failed: %s\n", error->message);
+		strcpy(err, "ListConnections: ");
+		strcat(err, error->message);
+		g_error_free (error);
+		return 1;
+	}
+
+	g_variant_get (ret, "(^ao)", &paths);
+	g_variant_unref (ret);
+
+	gboolean status = TRUE;
+	int length = 0;
+	for (i = 0; paths[i]; i++)
+    {        
+    	//如果这个路径的ssid是要找的
+        found = get_active_connection_details (paths[i], ssid);
+        if(found == TRUE)
+        {
+        	length +=strlen(paths[i]);
+        }       
+        
+    }
+    if(length < 200)
+	{
+		for (i = 0; paths[i]; i++)
+    	{        
+	    	//如果这个路径的ssid是要找的
+	        found = get_active_connection_details (paths[i], ssid);
+	        if(found == TRUE)
+	        {
+	        	strcat(err, paths[i]);
+	        	strcat(err,",");
+	        }        
+    	}
+	}
+	else
+	{
+		strcpy(err, "too many connections on this ssid, need to remove all");
+		status = FALSE;
+	}
+	g_strfreev (paths);
+    
+	g_object_unref (proxy);
+
+	return ((status == TRUE) ? 0: 2);
+}
+//修改某一个属性的值
+
+int update_property(const char *path, const char* property, const char* value, char * err)
+{
+	GDBusProxy *props_proxy;
+	GVariant *ret = NULL, *setting = NULL;
+	//const char *path = NULL;
+	GError *error = NULL;
+	gboolean status = TRUE;
+
+
+	/* Create a D-Bus object proxy for the active connection object's properties */
+	props_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                 G_DBUS_PROXY_FLAGS_NONE,
+                                 NULL,
+                                 //"org.freedesktop.NetworkManager"
+                                 NM_DBUS_SERVICE,
+                                 path,
+	 "org.freedesktop.NetworkManager.Settings.Connection",
+	                                             NULL, NULL);
+	g_assert (props_proxy);
+
+	/* Get the object path of the Connection details */
+	ret = g_dbus_proxy_call_sync (props_proxy,
+	                              "GetSettings",
+	                              NULL,
+	                              G_DBUS_CALL_FLAGS_NONE, -1,
+	                              NULL, &error);
+	if (!ret) {
+		g_dbus_error_strip_remote_error (error);
+		g_warning ("Failed to get active connection Connection property: %s\n",
+		           error->message);
+		g_error_free (error);
+		status = FALSE;
+		goto out;
+	}
+
+	g_variant_get (ret, "(@a{sa{sv}})", &setting);
+
+
+	GVariant *connection = NULL;
+	gboolean found;
+	const char  *auto, *id;
+	//const gchar *ssid;
+	gchar ssid[100];
+	GVariant *a;
+	connection = g_variant_lookup_value (setting, NM_SETTING_CONNECTION_SETTING_NAME, NULL);
+	found = g_variant_lookup (connection, "autoconnect", "&s", &auto);
+	if(found == NULL)
+	{
+		//增加auto = false选项
+	}
+	//g_assert (found);
+	else
+	{
+		if(strcmp(auto, "true") == 0)
+		{
+			//修改为false
+		}
+		else if(strcmp(auto, "false") == 0)
+		{
+			//不需要做什么动作
+		}
+	}
+
+out:
+	if (setting)
+		g_variant_unref (setting);
+	if (ret)
+		g_variant_unref (ret);
+	g_object_unref (props_proxy);
+    return ((status == TRUE)?0:1);
+	//修改值
+	//写回
+}
 
 /*6. 测试网络连通性函数 check_connectivity()*/
 

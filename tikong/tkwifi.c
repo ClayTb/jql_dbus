@@ -38,16 +38,16 @@ connect_wifi()
 
 新流程：
 1. 得到库版本
-2. 将其他ap的auto connect去掉
 2. 连接wifi
     2.1 
-3. 测试连通性
+3. 测试连通性，需要输入测试ip的网段
 4. 断连wifi
 */
 
 #include "wifi.h"
 #include "stdio.h"
 #include "unistd.h"
+#include <string.h>
 #include <sys/time.h>
 
 //gcc tkwifi.c libtkwifi.a -o tkwifi -lpthread -lnm -lgio-2.0 -lgobject-2.0 -lglib-2.0 -luuid
@@ -67,9 +67,14 @@ main (int argc, char *argv[])
         printf("input wlp2s0 tikong tikong-4g \n");
         return 1;
     }
+    memset(ret, 0, sizeof ret);
     //disable 
     //status = disable_auto(ret);
-
+    status = list_connections(argv[2], ret);
+    printf("%s\n", ret);
+    memset(ret, 0, sizeof ret);    
+    status = update_property("/org/freedesktop/NetworkManager/Settings/9", property, "false", ret);
+/*
     struct timeval start, end;
 
     //计算时间开始
@@ -116,7 +121,7 @@ main (int argc, char *argv[])
     else
     {
         printf("%s\n", ret);
-    }
+    }*/
     /*status = remove_conn(argv[2], ret);
     if(status != 0)
     {
