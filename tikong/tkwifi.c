@@ -59,7 +59,7 @@ main (int argc, char *argv[])
 
 //将要连接的ssid作为参数传入
     int status;
-    char ret[200]="";
+    char ret[500]="";
     status = get_version(ret);
     printf("tk wifi version %s\n", ret);
     if(argc != 4)
@@ -68,13 +68,23 @@ main (int argc, char *argv[])
         return 1;
     }
     memset(ret, 0, sizeof ret);
+    status = disconnect_wifi(argv[1], ret);
+    if(status == 0)
+    {
+        printf("disconnet wifi\n");
+    }
+    else
+    {
+        printf("%s\n", ret);
+    }
+    memset(ret, 0, sizeof ret);
     //disable 
     //status = disable_auto(ret);
-    status = list_connections(argv[2], ret);
-    printf("%s\n", ret);
-    memset(ret, 0, sizeof ret);    
-    status = update_property("/org/freedesktop/NetworkManager/Settings/9", property, "false", ret);
-/*
+    //status = list_connections(argv[2], ret);
+    //printf("%s\n", ret);
+    //memset(ret, 0, sizeof ret);    
+    //status = update_property("/org/freedesktop/NetworkManager/Settings/9", property, "false", ret);
+
     struct timeval start, end;
 
     //计算时间开始
@@ -88,9 +98,10 @@ main (int argc, char *argv[])
         return 1;
     }
     //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
-    
+        memset(ret, 0, sizeof ret);
+
     int try = 0;
-    while(try < 10)
+    while(try < 20)
     {
         status = check_connectivity(argv[1], "192.168.1", ret);
         if(status == 0)
@@ -110,18 +121,9 @@ main (int argc, char *argv[])
     double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     timeuse /= 1000; // 1000 to ms, 1000000 to seconds
     printf("timeuse %fms\n", timeuse);
-    sleep(5);
+    sleep(10);
     //wifi断连
     
-    status = disconnect_wifi(argv[1], ret);
-    if(status == 0)
-    {
-        printf("disconnet wifi\n");
-    }
-    else
-    {
-        printf("%s\n", ret);
-    }*/
     /*status = remove_conn(argv[2], ret);
     if(status != 0)
     {

@@ -914,7 +914,7 @@ out:
 
 
 gboolean exec(const char* cmd, char *ret) {
-    char buffer[128];
+    char buffer[500];
     FILE* pipe = popen(cmd, "r");
     if(!pipe)
     {

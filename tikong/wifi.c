@@ -222,7 +222,7 @@ int list_connections(const char *ssid, char *err)
 	return ((status == TRUE) ? 0: 2);
 }
 //修改某一个属性的值
-
+#if 0
 int update_property(const char *path, const char* property, const char* value, char * err)
 {
 	GDBusProxy *props_proxy;
@@ -260,7 +260,6 @@ int update_property(const char *path, const char* property, const char* value, c
 
 	g_variant_get (ret, "(@a{sa{sv}})", &setting);
 
-
 	GVariant *connection = NULL;
 	gboolean found;
 	const char  *auto, *id;
@@ -296,7 +295,7 @@ out:
 	//修改值
 	//写回
 }
-
+#endif
 /*6. 测试网络连通性函数 check_connectivity()*/
 
 //这里如果一连上就去ping会出现connect: Network is unreachable
@@ -329,19 +328,34 @@ check_connectivity(const char *iface, char *ip, char * err)
 	*/
 
 	gboolean status;
-	char cmd[100]="";
+	char cmd[200]="";
 	strcpy(cmd, "ifconfig | grep ");
 	strcat(cmd, iface);
 	strcat(cmd, " -A1 | grep -v Link");
 	//exec("ifconfig | grep wlp2s0 -A1 | grep -v Link", err);
 	exec(cmd, err);
 	//exec("ifconfig | grep wlp3s0 -A1 | grep -v Link");
-	//printf("%s\n", err);
+	printf("%s\n", err);
 	if(strstr(err, ip) != NULL)
 	{
-		return 0;
+		memset(cmd, 0, sizeof cmd);
+		strcpy(cmd, "ping ");
+		strcat(cmd, ip);
+		strcat(cmd, ".1 -c 1");
+		int ret = -1;
+		ret = system(cmd);
+		if(ret == 0)
+		{
+			strcpy(err, "network ok");
+			return 0;
+		}
+		else
+		{
+			strcpy(err, "network not working");
+			return 1;
+		}
+		//return 0;
 	}
-
 	return 1;
 	//这里应该提供信号强度
 } 
