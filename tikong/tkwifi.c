@@ -38,15 +38,19 @@ connect_wifi()
 
 新流程：
 1. 得到库版本
+2. 断连wifi
 2. 连接wifi
-    2.1 
+    2.1 find_hw会把wifi硬件设备的路径找到
+    2.2 check_exist会把原有连接路径找到
+    2.3 如果之前没有连接过，就add_conn
+    2.4 active_conn 使能连接
 3. 测试连通性，需要输入测试ip的网段
-4. 断连wifi
 */
 
 #include "wifi.h"
 #include "stdio.h"
 #include "unistd.h"
+#include <stdbool.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -57,11 +61,14 @@ int
 main (int argc, char *argv[])
 {
 
-//将要连接的ssid作为参数传入
     int status;
-    char ret[500]="";
+    //缓冲区大于500字节
+    char ret[501]={};
     status = get_version(ret);
-    printf("tk wifi version %s\n", ret);
+    if(status == 0)
+    {
+        printf("tk wifi version %s, %d\n", ret, sizeof(ret));
+    }
     if(argc != 4)
     {
         printf("input wlp2s0 tikong tikong-4g \n");
@@ -75,7 +82,8 @@ main (int argc, char *argv[])
     }
     else
     {
-        printf("%s\n", ret);
+        printf("%d, %s\n", status, ret);
+        return 2;
     }
     memset(ret, 0, sizeof ret);
     //disable 
@@ -86,36 +94,35 @@ main (int argc, char *argv[])
     //status = update_property("/org/freedesktop/NetworkManager/Settings/9", property, "false", ret);
 
     struct timeval start, end;
-
     //计算时间开始
     gettimeofday(&start, 0);
     //connect_wifi(argv[1], ret);
-    //void connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret);
-    status = connect_wifi(argv[1], argv[2], argv[3], ret);
+    //dft_route 无特殊情况设置为0
+    status = connect_wifi(argv[1], argv[2], argv[3], 0, ret);
     if(status != 0)
     {
-        printf("%s\n", ret);  //各种错误，包括添加连接和使能连接这两个过程中出现的各种错误
-        return 1;
+        printf("%d, %s\n", status, ret);  //各种错误，包括添加连接和使能连接这两个过程中出现的各种错误
+        return 2;
     }
     //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
-        memset(ret, 0, sizeof ret);
+    memset(ret, 0, sizeof ret);
 
     int try = 0;
     while(try < 20)
     {
-        status = check_connectivity(argv[1], "192.168.1", ret);
+        status = check_connectivity(argv[1], argv[2], "192.168.1", ret);
+        printf("%s\n", ret);
         if(status == 0)
         {
-            printf("got ip address\n");
             break;
         }
         else
         {
+            printf("%s\n", ret);
             try++;
             sleep(1.5);
         }
     }
-    printf("%s\n", ret);
     //计算时间结束
     gettimeofday(&end, 0);
     double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;

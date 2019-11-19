@@ -8,6 +8,7 @@ brief: 关于wifi控制的底层接口
 char PATH[100]={};
 //wifi device是硬件设备名 /org/freedesktop/NetworkManager/Devices/0 
 char WIFIDEVICE[100]={};
+//char ACTIVECONN[200]={};
 
 char *
 nm_utils_uuid_generate (void)
@@ -21,116 +22,10 @@ nm_utils_uuid_generate (void)
 	return buf;
 }
 
-gboolean get_change_ap(const char *obj_path, char *err)
-{
-	GDBusProxy *props_proxy;
-	GVariant *ret = NULL, *path_value = NULL;
-	//const char *path = NULL;
-	GError *error = NULL;
 
-props_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                 G_DBUS_PROXY_FLAGS_NONE,
-                                 NULL,
-                                 //"org.freedesktop.NetworkManager"
-                                 NM_DBUS_SERVICE,
-                                 obj_path,
-	 "org.freedesktop.NetworkManager.Settings.Connection",
-	                                             NULL, NULL);
-	g_assert (props_proxy);
-
-	/* Get the object path of the Connection details */
-	ret = g_dbus_proxy_call_sync (props_proxy,
-	                              "GetSettings",
-	                              NULL,
-	                              G_DBUS_CALL_FLAGS_NONE, -1,
-	                              NULL, &error);
-	if (!ret) {
-		g_dbus_error_strip_remote_error (error);
-		g_warning ("Failed to get active connection Connection property: %s\n",
-		           error->message);
-		g_error_free (error);
-		goto out;
-	}
-
-	g_variant_get (ret, "(@a{sa{sv}})", &path_value);
-	gboolean foundTk = FALSE;
-
-	GVariant *wireless= NULL;
-		GVariant *a;
-
-	wireless = g_variant_lookup_value (path_value, NM_SETTING_WIRELESS_SETTING_NAME, NULL);
-	//found = g_variant_lookup (wireless, NM_SETTING_WIRELESS_SSID, "^ay", str);  
-	a = g_variant_lookup_value (wireless, "mode", NULL);
-//	str = g_variant_get_bytestring (ssid);
-//printf("path %s <==> ssid %s\n", obj_path, str);
-	const char * mode;
-	g_variant_get (a, "s", &mode);
-	//g_assert (found);
-	if(strcmp(mode, "ap")== 0)
-	{
-		//增加或者修改auto属性
-	}
-		
-out:
-	if (path_value)
-		g_variant_unref (path_value);
-	if (ret)
-		g_variant_unref (ret);
-	g_object_unref (props_proxy);
-    return foundTk;
-}
-
-
-gboolean  find_ap(const char *iface, char *err)
-{
-	GDBusProxy *proxy;
-    gboolean found = FALSE;
-
-	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
-	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                   G_DBUS_PROXY_FLAGS_NONE,
-                   NULL,
-                   NM_DBUS_SERVICE,
-                   NM_DBUS_PATH_SETTINGS,
-                   NM_DBUS_INTERFACE_SETTINGS,
-                   NULL, NULL);
-	g_assert (proxy != NULL);
-
-
-	int i;
-	GError *error = NULL;
-	GVariant *ret;
-	char **paths;
-
-	/* Call ListConnections D-Bus method */
-	ret = g_dbus_proxy_call_sync (proxy,
-	                              "ListConnections",
-	                              NULL,
-	                              G_DBUS_CALL_FLAGS_NONE, -1,
-	                              NULL, &error);
-	if (!ret) {
-		g_dbus_error_strip_remote_error (error);
-		//g_print ("ListConnections failed: %s\n", error->message);
-		strcpy(err, "ListConnections failed: ");
-		strcat(err, error->message);
-		g_error_free (error);
-		return FALSE;
-	}
-
-	g_variant_get (ret, "(^ao)", &paths);
-	g_variant_unref (ret);
-
-	for (i = 0; paths[i]; i++)
-    {        
-        found = get_change_ap(paths[i], err);        
-    }
-OUT:
-	g_strfreev (paths);
-    return found;
-}
-
-gboolean
-disc_wifi_fun(char *err)
+//目前只支持Get 以及ss两个参数
+gboolean 
+get_property(const char *path, const char * if1, const char *method, const char *if2, const char* property, char *value, char *err)
 {
 	GDBusProxy *proxy;
     gboolean status = FALSE;
@@ -141,40 +36,97 @@ disc_wifi_fun(char *err)
                        NULL,
                        // "org.freedesktop.NetworkManager"
                        NM_DBUS_SERVICE,
-                       WIFIDEVICE,                                          
-                       "org.freedesktop.DBus.Properties",
+                       path,                                          
+					if1,
                        NULL, NULL);
 	g_assert (proxy != NULL);
 	GVariant *ret = NULL;
-    //首先确认这个接口上有没有active connection
-	ret = g_dbus_proxy_call_sync (proxy,
+    if(strcmp(method, "Get") == 0)
+    {
+		ret = g_dbus_proxy_call_sync (proxy,
             "Get",
-            g_variant_new ("(ss)", "org.freedesktop.NetworkManager.Device","ActiveConnection"),
+            g_variant_new ("(ss)", if2, property),
           	G_DBUS_CALL_FLAGS_NONE, -1,
           	NULL, &error);
-    
-
+    }
+   
 	if (ret) 
 	{
-		const char *conn = NULL; 
-	    //这里要先用v取出值，d-feet上输出是o，但是代码里输出却是v
-	    GVariant *value;
-		g_variant_get (ret, "(v)", &value);
-		g_variant_get (value, "o", &conn);
-		g_print("current active Connection %s\n", conn);
-		if(strstr(conn,"ActiveConnection") != NULL)
+		GVariant *vvalue;
+		if(strcmp(property, "ActiveConnection") == 0)
 		{
-		//接着去disconnect
+			const char *conn = NULL; 
+		    //这里要先用v取出值，d-feet上输出是o，但是代码里输出却是v
+			g_variant_get (ret, "(v)", &vvalue);
+			g_variant_get (vvalue, "o", &conn);
+			g_print("current active Connection %s\n", conn);
+			if(strstr(conn,"/NetworkManager/ActiveConnection") != NULL)
+			{
+				strcpy(value, conn);
+				status = TRUE;
+			}
+			else
+			{
+				strcpy(err, "current no active connection");
+				status = FALSE;
+			}
 			g_variant_unref (ret);
 			g_object_unref (proxy);
-			proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                       G_DBUS_PROXY_FLAGS_NONE,
-                       NULL,
-                       // "org.freedesktop.NetworkManager"
-                       NM_DBUS_SERVICE,
-                       WIFIDEVICE,                                          
-                       "org.freedesktop.NetworkManager.Device",
-                       NULL, NULL);
+			return status;
+		}
+		else if(strcmp(property, "Connection") == 0)
+		{
+			const char *conn = NULL; 
+		    //这里要先用v取出值，d-feet上输出是o，但是代码里输出却是v
+			g_variant_get (ret, "(v)", &vvalue);
+			g_variant_get (vvalue, "o", &conn);
+			g_print("current active Connection path %s\n", conn);
+
+			strcpy(value, conn);
+			g_variant_unref (ret);
+			g_object_unref (proxy);
+			status = TRUE;
+			return status;
+		}
+
+	} else {
+		g_dbus_error_strip_remote_error (error);
+		g_print ("Error get property %s, %s\n", property, error->message);
+		strcpy(err, error->message);
+		g_clear_error (&error); 
+		g_object_unref (proxy);
+		return FALSE;
+	}
+}
+
+
+
+
+gboolean
+disc_wifi_fun(char *err)
+{
+	GDBusProxy *proxy;
+    gboolean status = FALSE;
+    GError *error = NULL;
+/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+    GVariant *ret;
+    char value[200]={};
+    //status = check_online(err);
+//get_property(const char *path, const char * if1, const char *method, const char *if2, const char* property, char *value, char *err);
+    
+    status = get_property(WIFIDEVICE, "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager.Device","ActiveConnection", value, err);
+    if(status == TRUE)
+    {
+    	if(strstr(value,"/NetworkManager/ActiveConnection") != NULL)
+		{
+	    	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+	                       G_DBUS_PROXY_FLAGS_NONE,
+	                       NULL,
+	                       // "org.freedesktop.NetworkManager"
+	                       NM_DBUS_SERVICE,
+	                       WIFIDEVICE,                                          
+	                       "org.freedesktop.NetworkManager.Device",
+	                       NULL, NULL);
 			g_assert (proxy != NULL);
 			ret = g_dbus_proxy_call_sync (proxy,
 		                      "Disconnect",
@@ -200,27 +152,19 @@ disc_wifi_fun(char *err)
 			strcpy(err, "current no active connection");
 			status = FALSE;
 		}
-		g_variant_unref (ret);
-		g_object_unref (proxy);
-		return status;
-	} else {
-		g_dbus_error_strip_remote_error (error);
-		g_print ("Error get current active connection %s\n", error->message);
-		strcpy(err, error->message);
-		g_clear_error (&error); 
-		g_object_unref (proxy);
-		return FALSE;
 	}
-
-	//g_object_unref (ret);
-
-    //return TRUE;
+	else
+	{
+		status = FALSE;
+	}
+	
+	return status;
 }
+
+
 /*add_wifi_connection->add_connection*/
- gboolean
-//add_connection (GDBusProxy *proxy, const char *con_name)
-//add_connection (const char *con_name, char *err)
-add_connection (const char *iface, const char *con_name, const char *pw, char *err)
+gboolean
+add_connection (const char *iface, const char *con_name, const char *pw, const bool dft_route, char *err)
 
 {
 	GDBusProxy *proxy;
@@ -343,9 +287,14 @@ Object path of the new connection that was just added.
 	                       NM_SETTING_IP_CONFIG_METHOD,
 	                       g_variant_new_string (NM_SETTING_IP4_CONFIG_METHOD_AUTO));
 	/*不作为主路由*/
-    g_variant_builder_add (&setting_builder, "{sv}",
+	if(dft_route == false)
+	{
+		g_variant_builder_add (&setting_builder, "{sv}",
 	                       NM_SETTING_IP_CONFIG_NEVER_DEFAULT,
 	                       g_variant_new_boolean (TRUE));
+	}
+
+    
 
 	g_variant_builder_add (&connection_builder, "{sa{sv}}",
 	                       NM_SETTING_IP4_CONFIG_SETTING_NAME,
@@ -929,4 +878,114 @@ gboolean exec(const char* cmd, char *ret) {
     return TRUE;
 }
 
-//#endif
+
+#if 0
+gboolean get_change_ap(const char *obj_path, char *err)
+{
+	GDBusProxy *props_proxy;
+	GVariant *ret = NULL, *path_value = NULL;
+	//const char *path = NULL;
+	GError *error = NULL;
+
+	props_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                 G_DBUS_PROXY_FLAGS_NONE,
+                                 NULL,
+                                 //"org.freedesktop.NetworkManager"
+                                 NM_DBUS_SERVICE,
+                                 obj_path,
+	 "org.freedesktop.NetworkManager.Settings.Connection",
+	                            NULL, NULL);
+	g_assert (props_proxy);
+
+	/* Get the object path of the Connection details */
+	ret = g_dbus_proxy_call_sync (props_proxy,
+	                              "GetSettings",
+	                              NULL,
+	                              G_DBUS_CALL_FLAGS_NONE, -1,
+	                              NULL, &error);
+	if (!ret) {
+		g_dbus_error_strip_remote_error (error);
+		g_warning ("Failed to get active connection Connection property: %s\n",
+		           error->message);
+		g_error_free (error);
+		goto out;
+	}
+
+	g_variant_get (ret, "(@a{sa{sv}})", &path_value);
+	gboolean foundTk = FALSE;
+
+	GVariant *wireless= NULL;
+		GVariant *a;
+
+	wireless = g_variant_lookup_value (path_value, NM_SETTING_WIRELESS_SETTING_NAME, NULL);
+	//found = g_variant_lookup (wireless, NM_SETTING_WIRELESS_SSID, "^ay", str);  
+	a = g_variant_lookup_value (wireless, "mode", NULL);
+//	str = g_variant_get_bytestring (ssid);
+//printf("path %s <==> ssid %s\n", obj_path, str);
+	const char * mode;
+	g_variant_get (a, "s", &mode);
+	//g_assert (found);
+	if(strcmp(mode, "ap")== 0)
+	{
+		//增加或者修改auto属性
+	}
+		
+out:
+	if (path_value)
+		g_variant_unref (path_value);
+	if (ret)
+		g_variant_unref (ret);
+	g_object_unref (props_proxy);
+    return foundTk;
+}
+
+
+gboolean  find_ap(const char *iface, char *err)
+{
+	GDBusProxy *proxy;
+    gboolean found = FALSE;
+
+	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                   G_DBUS_PROXY_FLAGS_NONE,
+                   NULL,
+                   NM_DBUS_SERVICE,
+                   NM_DBUS_PATH_SETTINGS,
+                   NM_DBUS_INTERFACE_SETTINGS,
+                   NULL, NULL);
+	g_assert (proxy != NULL);
+
+
+	int i;
+	GError *error = NULL;
+	GVariant *ret;
+	char **paths;
+
+	/* Call ListConnections D-Bus method */
+	ret = g_dbus_proxy_call_sync (proxy,
+	                              "ListConnections",
+	                              NULL,
+	                              G_DBUS_CALL_FLAGS_NONE, -1,
+	                              NULL, &error);
+	if (!ret) {
+		g_dbus_error_strip_remote_error (error);
+		//g_print ("ListConnections failed: %s\n", error->message);
+		strcpy(err, "ListConnections failed: ");
+		strcat(err, error->message);
+		g_error_free (error);
+		return FALSE;
+	}
+
+	g_variant_get (ret, "(^ao)", &paths);
+	g_variant_unref (ret);
+
+	for (i = 0; paths[i]; i++)
+    {        
+        found = get_change_ap(paths[i], err);        
+    }
+OUT:
+	g_strfreev (paths);
+    return found;
+}
+
+#endif

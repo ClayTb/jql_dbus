@@ -8,6 +8,7 @@ test on ubuntu 16.04
 
 #include "wifi-fun.h"
 #include "wifi.h"
+#include <stdbool.h>
 #include <gio/gio.h>
 #include <uuid/uuid.h>
 #include <string.h>
@@ -17,17 +18,22 @@ test on ubuntu 16.04
 #include <stdio.h>
 
 
-int disable_auto(const char *iface, char *err)
-{
-	gboolean status = FALSE;
-	status = find_ap(iface, err);
-
-	return ((status == TRUE)?0:1);
-}
 /*3. 删除连接 remove_conn()*/
 int
 remove_conn(const char *ssid, char *err)
 {
+	//if(err == NULL || sizeof(err) < 500)
+	if(err == NULL)
+	{
+		//strcpy(ret,"pass memory bigger than 500"); //错误1
+		return 1;
+	}
+	if(ssid == NULL || strlen(ssid) < 1)
+	{
+		strcpy(err,"pass correct ssid"); //错误1
+		return 2;
+	}
+
     GDBusProxy *proxy;
     gboolean found = FALSE;
 
@@ -133,17 +139,28 @@ check_exist (const char *ssid)
  int
 disconnect_wifi(const char *iface, char *err)
 {
-    //g_print("first diconn wifi\n");
+	//if(err == NULL || sizeof(err) < 500)
+	if(err == NULL)
+	{
+		//strcpy(err,"pass memory bigger than 500"); //错误1
+		return 1;
+	}
+	if(iface == NULL || strlen(iface) < 1)
+	{
+		strcpy(err,"pass correct interface"); //错误1
+		return 2;
+	}
+
     gboolean found = find_hw(iface);
     gboolean status = FALSE;
     if(found == TRUE)
     {
     	status = disc_wifi_fun(err);
-    	return ((status == TRUE) ? 0: 2);
+    	return ((status == TRUE) ? 0: 4);
     }
     else
     {
-    	return 1;
+    	return 3;
     }
 	
 }
@@ -221,6 +238,232 @@ int list_connections(const char *ssid, char *err)
 
 	return ((status == TRUE) ? 0: 2);
 }
+
+/*6. 测试网络连通性函数 check_connectivity()*/
+
+//这里如果一连上就去ping会出现connect: Network is unreachable
+
+int
+check_connectivity(const char *iface, const char * ssid, const char *ip, char * err)
+{
+/*	int ret = -1;
+	ret = system("ping 192.168.1.1");
+//	ret = system("ping 192.168.1.1 -c 1");
+	if(ret == 0)
+	{
+		strcpy(err, "network ok");
+		return TRUE;
+	}
+	else
+	{
+		strcpy(err, "network not working");
+		return FALSE;
+	}
+	//增加ping外网的需求，ping150主控
+	*/
+	//一种方法，一直去查询dbus的某一个值
+	/*
+	string cmd = "nmcli c add type wifi con-name tikong-wifi ifname ";
+    	cmd.append(WLAN);
+    	cmd.append(" ssid tikong");
+        //system("nmcli c add type wifi con-name tikong-wifi ifname wlp3s0 ssid tikong");
+        system(cmd.c_str());
+	*/
+	//第一步检测是否连接上
+	//找到iface对于的物理网卡
+	char wifi_path[200] = {};
+    gboolean found = find_hw(iface);
+    gboolean status = FALSE;
+    //get_property("/org/freedesktop/NetworkManager", "org.freedesktop.NetworkManager","AllDevices", wifi_path, err);
+    if(found == TRUE)
+    {
+    	//接着找这个物理网卡所对应的活动连接
+    	//status = check_online(err);
+    	char active_conn[200] ={};
+    	status = get_property(WIFIDEVICE, "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager.Device", "ActiveConnection",active_conn, err);
+    	if(status == FALSE)
+    	{
+    		strcpy(err, "no active connection now");
+    		return 1;
+    	}
+    	else
+    	{
+    		//如果目前有活动连接，检测出目前连接的path
+    		char active_path[200]={};
+    		status = get_property(active_conn, "org.freedesktop.DBus.Properties", "Get","org.freedesktop.NetworkManager.Connection.Active", "Connection", active_path, err);
+    		if(status == TRUE)
+    		{
+    			//拿到ssid
+    			status = get_active_connection_details (active_path, ssid);
+    			if(status == TRUE)
+    			{
+    				strcpy(err, iface);
+    				strcat(err, " ");
+    				strcat(err, ssid);
+    				strcat(err, " is active, ");
+    			}
+    			else
+    			{
+    				strcpy(err, "current active connection is not ");
+    				strcat(err, ssid);
+    				return 2;
+    			}
+    		}
+    		else
+    		{
+    			return 3;
+    		}
+    	}
+    }
+    else
+    {
+    	return 4;
+    }
+
+	char cmd[200]="";
+	strcpy(cmd, "ifconfig | grep ");
+	strcat(cmd, iface);
+	strcat(cmd, " -A1 | grep -v Link");
+	//exec("ifconfig | grep wlp2s0 -A1 | grep -v Link", err);
+	exec(cmd, err);
+	//exec("ifconfig | grep wlp3s0 -A1 | grep -v Link");
+	//printf("%s\n", err);
+	if(strstr(err, ip) != NULL)
+	{
+		memset(cmd, 0, sizeof cmd);
+		strcpy(cmd, "ping ");
+		strcat(cmd, ip);
+		strcat(cmd, ".1 -c 1");
+		int ret = -1;
+		ret = system(cmd);
+		if(ret == 0)
+		{
+			strcat(err, "ping network ok");
+			return 0;
+		}
+		else
+		{
+			strcpy(err, "ping network not working");
+			return 5;
+		}
+	}
+	else
+	{
+		strcat(err, "not get ip");
+		return 6;
+	}
+	//这里应该提供信号强度
+} 
+
+
+
+//void connect_wifi(const char *ssid, char *ret)
+int connect_wifi(const char *iface, const char *ssid, const char *pw, const int dft_route, char *ret)
+{ 
+
+	//if(ret ==NULL || sizeof(ret) < 500)
+	if(ret == NULL)
+	{
+		//strcpy(ret,"pass memory bigger than 500"); //错误1
+		return 1;
+	}
+	if(iface == NULL || ssid == NULL || pw == NULL)
+	{
+		strcpy(ret,"some paramter is null"); //错误1
+		return 2;
+	}
+	if(strlen(iface) < 1 || strlen(ssid) < 1 || strlen(pw) < 1)
+	{
+		strcpy(ret,"pass correct paramter"); //错误1
+		return 3;
+	}
+	
+	if(dft_route != 0 && dft_route != 1)
+	{
+		strcpy(ret, "set dft_route either 0 or 1");
+		return 4;
+	}
+    gboolean status = FALSE;
+    status = find_hw(iface);
+    if(status == TRUE)
+    {
+        //printf("found wifi hardware\n");  
+        //strcpy(ret,"found wifi hardware"); 
+    }
+    else if(status == FALSE)
+    {
+        printf("no wifi hardware, return\n"); 
+        strcpy(ret,"no wifi hardware"); //错误1
+        return 1;
+    }
+    //check_exist函数里会把连接的PATH找到
+    status = check_exist(ssid);
+    if(status == TRUE)
+    {
+        printf("found wifi ssid\n");  
+    }
+    else if(status == FALSE)
+    {
+    	printf("need establish %s connection\n", ssid);
+    	if(dft_route == 0)
+    	{
+    		status = add_connection (iface, ssid, pw, false,ret);
+    	}
+    	else if(dft_route == 1)
+    	{
+    		status = add_connection (iface, ssid, pw, true,ret);
+    	}
+        if(status == FALSE)
+	    {
+	    	printf("%s\n", ret); //错误2 已经拷贝进去
+	        return 2;
+	    }
+	    else if(status == TRUE)
+	    {
+	    	printf("add connection ok\n"); 
+    	}
+    }
+    //enable wifi connection
+    status = active_conn(ret); //错误3
+    if(status == TRUE)
+    {
+    	strcpy(ret,"connection enabled"); //正确1
+    }
+    else
+    {
+    	//错误信息已经在enable_conn函数里拷贝到ret里了  //错误3
+    	return 3;
+    }
+    //sleep(8);
+    return 0;
+
+}
+
+int get_version(char *ver)
+{
+	if(ver == NULL)
+	{
+		return 1;
+	}
+	if(sizeof(ver) < 5)
+	{
+		return 2;
+	}
+	strcpy(ver, "1.2");
+	return 0;
+}
+
+
+#if 0
+int disable_auto(const char *iface, char *err)
+{
+	gboolean status = FALSE;
+	status = find_ap(iface, err);
+
+	return ((status == TRUE)?0:1);
+}
+#endif
+
 //修改某一个属性的值
 #if 0
 int update_property(const char *path, const char* property, const char* value, char * err)
@@ -296,128 +539,3 @@ out:
 	//写回
 }
 #endif
-/*6. 测试网络连通性函数 check_connectivity()*/
-
-//这里如果一连上就去ping会出现connect: Network is unreachable
-
-int
-check_connectivity(const char *iface, char *ip, char * err)
-{
-/*	int ret = -1;
-	ret = system("ping 192.168.1.1");
-//	ret = system("ping 192.168.1.1 -c 1");
-	if(ret == 0)
-	{
-		strcpy(err, "network ok");
-		return TRUE;
-	}
-	else
-	{
-		strcpy(err, "network not working");
-		return FALSE;
-	}
-	//增加ping外网的需求，ping150主控
-	*/
-	//一种方法，一直去查询dbus的某一个值
-	/*
-	string cmd = "nmcli c add type wifi con-name tikong-wifi ifname ";
-    	cmd.append(WLAN);
-    	cmd.append(" ssid tikong");
-        //system("nmcli c add type wifi con-name tikong-wifi ifname wlp3s0 ssid tikong");
-        system(cmd.c_str());
-	*/
-
-	gboolean status;
-	char cmd[200]="";
-	strcpy(cmd, "ifconfig | grep ");
-	strcat(cmd, iface);
-	strcat(cmd, " -A1 | grep -v Link");
-	//exec("ifconfig | grep wlp2s0 -A1 | grep -v Link", err);
-	exec(cmd, err);
-	//exec("ifconfig | grep wlp3s0 -A1 | grep -v Link");
-	printf("%s\n", err);
-	if(strstr(err, ip) != NULL)
-	{
-		memset(cmd, 0, sizeof cmd);
-		strcpy(cmd, "ping ");
-		strcat(cmd, ip);
-		strcat(cmd, ".1 -c 1");
-		int ret = -1;
-		ret = system(cmd);
-		if(ret == 0)
-		{
-			strcpy(err, "network ok");
-			return 0;
-		}
-		else
-		{
-			strcpy(err, "network not working");
-			return 1;
-		}
-		//return 0;
-	}
-	return 1;
-	//这里应该提供信号强度
-} 
-
-
-
-//void connect_wifi(const char *ssid, char *ret)
-int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret)
-{ 
-	
-    gboolean status = FALSE;
-
-    status = find_hw(iface);
-    if(status == TRUE)
-    {
-        //printf("found wifi hardware\n");  
-        //strcpy(ret,"found wifi hardware"); 
-    }
-    else if(status == FALSE)
-    {
-        printf("no wifi hardware, return\n"); 
-        strcpy(ret,"no wifi hardware"); //错误1
-        return 1;
-    }
-    //check_exist函数里会把连接的PATH找到
-    status = check_exist(ssid);
-    if(status == TRUE)
-    {
-        printf("found wifi ssid\n");  
-    }
-    else if(status == FALSE)
-    {
-    	printf("need establish %s connection\n", ssid);
-        status = add_connection (iface, ssid, pw,ret);
-        if(status == FALSE)
-	    {
-	    	printf("%s\n", ret); //错误2 已经拷贝进去
-	        return 2;
-	    }
-	    else if(status == TRUE)
-	    {
-	    	printf("add connection ok\n"); 
-    	}
-    }
-    //enable wifi connection
-    status = active_conn(ret); //错误3
-    if(status == TRUE)
-    {
-    	strcpy(ret,"connection enabled"); //正确1
-    }
-    else
-    {
-    	//错误信息已经在enable_conn函数里拷贝到ret里了  //错误3
-    	return 3;
-    }
-    //sleep(8);
-    return 0;
-
-}
-
-int get_version(char *ver)
-{
-	strcpy(ver, "1.1");
-	return 0;
-}

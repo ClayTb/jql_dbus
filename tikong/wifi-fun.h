@@ -3,6 +3,7 @@
 #include <gio/gio.h>
 #include <uuid/uuid.h>
 #include <string.h>
+#include <stdbool.h>
 #include <nm-dbus-interface.h>
 #include <NetworkManager.h>
 #include <stdlib.h>
@@ -23,11 +24,15 @@ nm_utils_uuid_generate (void);
 
  gboolean
 //add_connection (GDBusProxy *proxy, const char *con_name);
-add_connection (const char *iface, const char *con_name, const char *pw, char *err);
+add_connection (const char *iface, const char *con_name, const char *pw, const bool dft_route, char *err);
 
+gboolean
+check_online(char *err);
 
+gboolean 
+get_property(const char *path, const char * if1, const char *method, const char *if2, const char* property, char *value, char *err);
 
- gboolean
+gboolean
 get_active_connection_details (const char *obj_path, const char *ssid);
 
  gboolean
