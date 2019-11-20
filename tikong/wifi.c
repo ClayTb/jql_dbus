@@ -17,6 +17,50 @@ test on ubuntu 16.04
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+bool isVaildIp(const char *ip)
+{
+    int dots = 0; 
+    int setions = 0;  
+    int num = 1;
+
+    if (NULL == ip || *ip == '.') { 
+        return false;
+    }   
+
+    while (*ip) {
+
+        if (*ip == '.') {
+            dots ++; 
+            if (setions >= 0 && setions <= 255) { 
+                setions = 0;
+                ip++;
+                if(*ip >='0' && *ip <='9')
+                	num++;
+                continue;
+            }   
+            return false;
+        }   
+        else if (*ip >= '0' && *ip <= '9') { 
+            setions = setions * 10 + (*ip - '0');
+        } else 
+            return false;
+        ip++;   
+    }   
+    if (setions >= 0 && setions <= 255) {
+        if (dots == 3 && num == 3) {
+            return true;
+        }   
+    }   
+
+    return false;
+}
+
+
 
 /*3. 删除连接 remove_conn()*/
 int
@@ -28,7 +72,7 @@ remove_conn(const char *ssid, char *err)
 		//strcpy(ret,"pass memory bigger than 500"); //错误1
 		return 1;
 	}
-	if(ssid == NULL || strlen(ssid) < 1)
+	if(ssid == NULL || strlen(ssid) < 2)
 	{
 		strcpy(err,"pass correct ssid"); //错误1
 		return 2;
@@ -145,7 +189,7 @@ disconnect_wifi(const char *iface, char *err)
 		//strcpy(err,"pass memory bigger than 500"); //错误1
 		return 1;
 	}
-	if(iface == NULL || strlen(iface) < 1)
+	if(iface == NULL || strlen(iface) < 2)
 	{
 		strcpy(err,"pass correct interface"); //错误1
 		return 2;
@@ -160,6 +204,8 @@ disconnect_wifi(const char *iface, char *err)
     }
     else
     {
+    	strcpy(err, "can't find interface ");
+    	strcat(err, iface);
     	return 3;
     }
 	
@@ -269,6 +315,27 @@ check_connectivity(const char *iface, const char * ssid, const char *ip, char * 
         //system("nmcli c add type wifi con-name tikong-wifi ifname wlp3s0 ssid tikong");
         system(cmd.c_str());
 	*/
+	if(err == NULL)
+	{
+		//strcpy(ret,"pass memory bigger than 500"); //错误1
+		return 1;
+	}
+	if(iface == NULL || ssid == NULL || ip == NULL)
+	{
+		strcpy(err,"some paramter is null"); //错误1
+		return 2;
+	}
+	if(strlen(iface) < 2 || strlen(ssid) < 2 || strlen(ip) < 2)
+	{
+		strcpy(err,"pass correct paramter"); //错误1
+		return 3;
+	}
+	if (isVaildIp(ip)) {
+        
+    } else {
+        strcpy(err, "not valid network segment");
+        return 4;
+    }   
 	//第一步检测是否连接上
 	//找到iface对于的物理网卡
 	char wifi_path[200] = {};
@@ -333,7 +400,7 @@ check_connectivity(const char *iface, const char * ssid, const char *ip, char * 
 		memset(cmd, 0, sizeof cmd);
 		strcpy(cmd, "ping ");
 		strcat(cmd, ip);
-		strcat(cmd, ".1 -c 1");
+		strcat(cmd, "1 -c 1");
 		int ret = -1;
 		ret = system(cmd);
 		if(ret == 0)
@@ -372,7 +439,7 @@ int connect_wifi(const char *iface, const char *ssid, const char *pw, const int 
 		strcpy(ret,"some paramter is null"); //错误1
 		return 2;
 	}
-	if(strlen(iface) < 1 || strlen(ssid) < 1 || strlen(pw) < 1)
+	if(strlen(iface) < 2 || strlen(ssid) < 2 || strlen(pw) < 2)
 	{
 		strcpy(ret,"pass correct paramter"); //错误1
 		return 3;
@@ -392,9 +459,9 @@ int connect_wifi(const char *iface, const char *ssid, const char *pw, const int 
     }
     else if(status == FALSE)
     {
-        printf("no wifi hardware, return\n"); 
-        strcpy(ret,"no wifi hardware"); //错误1
-        return 1;
+        strcpy(ret,"cant't fine interface "); //错误1
+        strcat(ret, iface);
+        return 5;
     }
     //check_exist函数里会把连接的PATH找到
     status = check_exist(ssid);

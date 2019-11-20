@@ -67,7 +67,7 @@ main (int argc, char *argv[])
     status = get_version(ret);
     if(status == 0)
     {
-        printf("tk wifi version %s, %d\n", ret, sizeof(ret));
+        printf("tk wifi version %s, %ld\n", ret, sizeof(ret));
     }
     if(argc != 4)
     {
@@ -82,7 +82,7 @@ main (int argc, char *argv[])
     }
     else
     {
-        printf("%d, %s\n", status, ret);
+        printf("err code: %d, err msg: %s\n", status, ret);
         return 2;
     }
     memset(ret, 0, sizeof ret);
@@ -101,24 +101,24 @@ main (int argc, char *argv[])
     status = connect_wifi(argv[1], argv[2], argv[3], 0, ret);
     if(status != 0)
     {
-        printf("%d, %s\n", status, ret);  //各种错误，包括添加连接和使能连接这两个过程中出现的各种错误
+        printf("err code: %d, err msg: %s\n", status, ret);
         return 2;
     }
+
     //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
     memset(ret, 0, sizeof ret);
 
     int try = 0;
     while(try < 20)
     {
-        status = check_connectivity(argv[1], argv[2], "192.168.1", ret);
-        printf("%s\n", ret);
+        status = check_connectivity(argv[1], argv[2], "192.168.1.", ret);
         if(status == 0)
         {
             break;
         }
         else
         {
-            printf("%s\n", ret);
+        printf("err code: %d, err msg: %s\n", status, ret);
             try++;
             sleep(1.5);
         }
@@ -129,8 +129,6 @@ main (int argc, char *argv[])
     timeuse /= 1000; // 1000 to ms, 1000000 to seconds
     printf("timeuse %fms\n", timeuse);
     sleep(10);
-    //wifi断连
-    
     /*status = remove_conn(argv[2], ret);
     if(status != 0)
     {

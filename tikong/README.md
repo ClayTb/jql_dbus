@@ -3,21 +3,22 @@ tikong-cmd: 里面是命令行的代码
 tikong：里面是使用dbus的代码
 网卡名 ssid 密码 buf(抛异常c++) 
 ar -rcs libtkwifi.a wifi.o wifi-fun.o 
+gcc -shared wifi.o wifi-fun.o -o libtkwifi.so
 
 ### 接口说明
 下面所有的api的：
-返回字符串请设置大小为500字节
+ret返回字符串请设置大于500字节
 返回值0：正确 其他值：错误
 1. 获得库版本
-int get_version(char *ver);
-2. 连接wifi，参数 网口名 ssid 密码 返回具体错误字符串
-int connect_wifi(const char *iface, const char *ssid, const char *pw, const bool dft_route, char *ret);
+	int get_version(char *ver);
+2. 连接wifi，参数: 网口名 ssid 密码 dft_route没有特殊要求下设置为0 
+	int connect_wifi(const char *iface, const char *ssid, const char *pw, const int dft_route, char *ret);
 3. 断开当前iface上的wifi连接
-int disconnect_wifi(const char *iface, char *err);
-4. 测试是否连接上，ssid 是要测试的ssid，ip为需要测试的网段，比如192.168.4
-int check_connectivity(const char *iface, const char *ssid, const char *ip, char * ret);
+	int disconnect_wifi(const char *iface, char *ret);
+4. 测试是否连接上，ssid 是要测试的ssid，ip为需要测试的网段，比如192.168.4.
+	int check_connectivity(const char *iface, const char *ssid, const char *ip, char * ret);
 5. (option)删除所有这个ssid的连接
-int remove_conn(const char *ssid, char *ret);  
+	int remove_conn(const char *ssid, char *ret);  
 
 ### 版本说明
 v1.2 2019-11-18

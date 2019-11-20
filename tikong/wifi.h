@@ -7,7 +7,7 @@ int get_version(char *ver);
 int connect_wifi(const char *iface, const char *ssid, const char *pw, const int dft_route, char *ret);
 //如果当前iface有活动的wifi，断掉，
 int disconnect_wifi(const char *iface, char *ret);
-//ip 为要测试的网段，比如梯控是192.168.1 闸机是192.168.4
+//ip 为要测试的网段，比如梯控是192.168.1. 闸机是192.168.4.
 int check_connectivity(const char *iface, const char *ssid, const char *ip, char * ret);
 //删除这个ssid上所有的连接
 int remove_conn(const char *ssid, char *ret);
