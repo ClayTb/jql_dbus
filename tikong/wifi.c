@@ -60,6 +60,127 @@ bool isVaildIp(const char *ip)
     return false;
 }
 
+//目前这个函数只作为电梯控制设备的网络查询接口
+int check_signal(const char * iface, char *err)
+{
+	int ret = -1;
+	if(err == NULL)
+	{
+		//strcpy(ret,"pass memory bigger than 500"); //错误1
+		return 1;
+	}
+	if(NULL == iface || strlen(iface) < 2)
+	{
+		strcpy(err,"pass correct interface"); //错误1
+		return 2;
+	}
+	char device_path[100]={};
+	gboolean status = find_hw_r(iface, device_path, err);
+    if(FALSE == status)
+    {
+    	strcpy(err, "can't find interface ");
+    	strcat(err, iface);
+    	return 3;
+    }
+    //已经找到设备，并且把设备的路径放到device_path里了
+    //接着查看state
+    int state = 0;
+    status = get_property_r(device_path, "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager.Device", "State",&state, err);
+    g_print("state %d\n", state);
+    if(FALSE == status)
+    {
+    	return 5;
+    }
+    strcpy(err, "device state: ");
+    switch(state)
+    {
+    	case 0:
+    		strcat(err,"NM_DEVICE_STATE_UNKNOWN");
+    		break;
+    	case 10:
+    		strcat(err,"NM_DEVICE_STATE_UNMANAGED");
+    		break;
+    	case 20:
+    		strcat(err,"NM_DEVICE_STATE_UNAVAILABLE");
+    		break;
+    	case 30:
+    		strcat(err,"NM_DEVICE_STATE_DISCONNECTED");
+    		break;
+    	case 40:
+    		strcat(err,"NM_DEVICE_STATE_PREPARE");
+    		break;
+    	case 50:
+    		strcat(err,"NM_DEVICE_STATE_CONFIG");
+    		break;
+    	case 60:
+    		strcat(err,"NM_DEVICE_STATE_NEED_AUTH");
+    		break;
+    	case 70:
+    		strcat(err,"NM_DEVICE_STATE_IP_CONFIG");
+    		break;
+    	case 80:
+    		strcat(err,"NM_DEVICE_STATE_IP_CHECK");
+    		break;
+    	case 90:
+    		strcat(err,"NM_DEVICE_STATE_SECONDARIES");
+    		break;
+    	case 100:
+    		strcat(err, "NM_DEVICE_STATE_ACTIVATED");
+    		break;
+    	case 110:
+    		strcat(err, "NM_DEVICE_STATE_DEACTIVATING");
+    		break;
+    	case 120:
+    		strcat(err,"NM_DEVICE_STATE_FAILED");
+    		break;
+    	default:
+    		strcat(err, "unkonwn state");
+    		break;
+    }
+
+    //如果有活动连接，找到连接的路径
+    //char active_path[100]={};
+    //status = get_property(active_conn, "org.freedesktop.DBus.Properties", "Get","org.freedesktop.NetworkManager.Connection.Active", "Connection", active_path, err);
+
+    //接着看网络整体的连接情况
+    //d-feet上是state小写，但是代码运行却是State大写
+    status = get_property_r("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager", "State", &state, err);
+    g_print("state %d\n", state);
+    strcat(err, ", network state: ");
+   	switch(state)
+    {
+    	case 0:
+    		strcat(err, "NM_STATE_UNKNOWN");
+    		break;
+    	case 10:
+    		strcat(err, "NM_STATE_ASLEEP");
+    		break;
+    	case 20:
+    		strcat(err, "NM_STATE_DISCONNECTED");
+    		break;
+    	case 30:
+    		strcat(err, "NM_STATE_DISCONNECTING");
+    		break;
+    	case 40:
+    		strcat(err, "NM_STATE_CONNECTING");    	
+    		break;
+    	case 50:
+    		strcat(err, "NM_STATE_CONNECTED_LOCAL");  
+    		break;
+    	case 60:
+    		strcat(err, "NM_STATE_CONNECTED_SITE");
+    		break;
+    	case 70:
+    		strcat(err, "NM_STATE_CONNECTED_GLOBAL");
+    		ret = 70;
+    		break;
+    	default:
+    		strcat(err, "unkonwn state");
+    		break;
+    }
+   
+    return ret;
+}
 
 
 /*3. 删除连接 remove_conn()*/
@@ -347,6 +468,8 @@ check_connectivity(const char *iface, const char * ssid, const char *ip, char * 
     	//接着找这个物理网卡所对应的活动连接
     	//status = check_online(err);
     	char active_conn[200] ={};
+    	//这里可以用get state来得知是否连接上，但是下面的检测是否是目的ssid还是需要用到
+    	//active connection path
     	status = get_property(WIFIDEVICE, "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager.Device", "ActiveConnection",active_conn, err);
     	if(status == FALSE)
     	{

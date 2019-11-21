@@ -8,6 +8,9 @@ gcc -Wall tkwifi.c wifi.c wifi-fun.c -o tkwifi `pkg-config --cflags --libs libnm
 v1.0 2019-11-5
 1. 重新梳理流程
 2. 也可以做为测试电梯wifi的程序
+v1.1 2019-11-21
+sudo apt-get install libnm-dev uuid-dev
+
 
 */
 
@@ -64,6 +67,7 @@ main (int argc, char *argv[])
     int status;
     //缓冲区大于500字节
     char ret[501]={};
+    struct timeval start, end;
     status = get_version(ret);
     if(status == 0)
     {
@@ -75,6 +79,7 @@ main (int argc, char *argv[])
         return 1;
     }
     memset(ret, 0, sizeof ret);
+    #if 0
     status = disconnect_wifi(argv[1], ret);
     if(status == 0)
     {
@@ -83,7 +88,6 @@ main (int argc, char *argv[])
     else
     {
         printf("err code: %d, err msg: %s\n", status, ret);
-        return 2;
     }
     memset(ret, 0, sizeof ret);
     //disable 
@@ -93,12 +97,12 @@ main (int argc, char *argv[])
     //memset(ret, 0, sizeof ret);    
     //status = update_property("/org/freedesktop/NetworkManager/Settings/9", property, "false", ret);
 
-    struct timeval start, end;
     //计算时间开始
     gettimeofday(&start, 0);
     //connect_wifi(argv[1], ret);
     //dft_route 无特殊情况设置为0
-    status = connect_wifi(argv[1], argv[2], argv[3], 0, ret);
+
+    status = connect_wifi(argv[1], argv[2], argv[3], 1, ret);
     if(status != 0)
     {
         printf("err code: %d, err msg: %s\n", status, ret);
@@ -118,7 +122,7 @@ main (int argc, char *argv[])
         }
         else
         {
-        printf("err code: %d, err msg: %s\n", status, ret);
+            printf("err code: %d, err msg: %s\n", status, ret);
             try++;
             sleep(1.5);
         }
@@ -129,6 +133,9 @@ main (int argc, char *argv[])
     timeuse /= 1000; // 1000 to ms, 1000000 to seconds
     printf("timeuse %fms\n", timeuse);
     sleep(10);
+    #endif
+    status = check_signal(argv[1], ret);
+            printf("err code: %d, err msg: %s\n", status, ret);
     /*status = remove_conn(argv[2], ret);
     if(status != 0)
     {

@@ -23,7 +23,8 @@ nm_utils_uuid_generate (void)
 }
 
 
-//目前只支持Get 以及ss两个参数
+//目前只支持Get 以及ss两个参数，以及返回值是字符串
+//后期需要更改
 gboolean 
 get_property(const char *path, const char * if1, const char *method, const char *if2, const char* property, char *value, char *err)
 {
@@ -88,6 +89,34 @@ get_property(const char *path, const char * if1, const char *method, const char 
 			status = TRUE;
 			return status;
 		}
+		else if(strcmp(property, "Interface") == 0)
+		{
+			const char *iface = NULL; 
+		    //这里要先用v取出值，d-feet上输出是o，但是代码里输出却是v
+			g_variant_get (ret, "(v)", &vvalue);
+			g_variant_get (vvalue, "s", &iface);
+			g_print("current interface %s\n", iface);
+			strcpy(value, iface);
+			g_variant_unref (ret);
+			g_object_unref (proxy);
+			status = TRUE;
+			return status;
+		}
+		//这一段后期再改，需要用到c++
+		else if(strcmp(property, "State") == 0 || strcmp(property, "state") == 0)
+		{
+			//const char *conn = NULL; 
+		    //这里要先用v取出值，d-feet上输出是o，但是代码里输出却是v
+			g_variant_get (ret, "(u)", &value);
+			//g_variant_get (vvalue, "o", &conn);
+			//g_print("current active Connection path %s\n", conn);
+
+			//strcpy(value, conn);
+			g_variant_unref (ret);
+			g_object_unref (proxy);
+			status = TRUE;
+			return status;
+		}
 
 	} else {
 		g_dbus_error_strip_remote_error (error);
@@ -100,6 +129,62 @@ get_property(const char *path, const char * if1, const char *method, const char 
 }
 
 
+gboolean 
+get_property_r(const char *path, const char * if1, const char *method, const char *if2, const char* property, int *value, char *err)
+{
+	GDBusProxy *proxy;
+    gboolean status = FALSE;
+    GError *error = NULL;
+/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                       G_DBUS_PROXY_FLAGS_NONE,
+                       NULL,
+                       // "org.freedesktop.NetworkManager"
+                       NM_DBUS_SERVICE,
+                       path,                                          
+					if1,
+                       NULL, NULL);
+	g_assert (proxy != NULL);
+	GVariant *ret = NULL;
+    if(strcmp(method, "Get") == 0)
+    {
+		ret = g_dbus_proxy_call_sync (proxy,
+            "Get",
+            g_variant_new ("(ss)", if2, property),
+          	G_DBUS_CALL_FLAGS_NONE, -1,
+          	NULL, &error);
+    }
+   
+	if (ret) 
+	{
+		
+		//这一段后期再改，需要用到c++
+		//d-feet上看state是uint32，但是代码却提示是v
+		if(strcmp(property, "State") == 0 || strcmp(property, "state") == 0)
+		{
+			//const char *conn = NULL; 
+			GVariant *vvalue;
+			g_variant_get (ret, "(v)", &vvalue);
+			g_variant_get (vvalue, "u", value);
+			//g_variant_get (vvalue, "o", &conn);
+			//g_print("current active Connection path %s\n", conn);
+
+			//strcpy(value, conn);
+			g_variant_unref (ret);
+			g_object_unref (proxy);
+			status = TRUE;
+			return status;
+		}
+
+	} else {
+		g_dbus_error_strip_remote_error (error);
+		g_print ("Error get property %s, %s\n", property, error->message);
+		strcpy(err, error->message);
+		g_clear_error (&error); 
+		g_object_unref (proxy);
+		return FALSE;
+	}
+}
 
 
 gboolean
@@ -566,6 +651,94 @@ out:
     return status;
 }
 
+/*找到硬件路径*/
+gboolean
+find_hw_r(const char *iface, char * device_path, char* err)
+{
+    GDBusProxy *proxy;
+    gboolean status = FALSE, found = FALSE;
+
+	/* Create a D-Bus proxy; NM_DBUS_* defined in nm-dbus-interface.h */
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                   G_DBUS_PROXY_FLAGS_NONE,
+                   NULL,
+                   // "org.freedesktop.NetworkManager"
+                   NM_DBUS_SERVICE,
+                   //"/org/freedesktop/NetworkManager"
+                   NM_DBUS_PATH,
+                   //"org.freedesktop.NetworkManager"
+                   //NM_DBUS_INTERFACE,
+                   "org.freedesktop.DBus.Properties",
+                   NULL, NULL);
+
+	g_assert (proxy != NULL);
+	int i;
+	GError *error = NULL;
+	GVariant *ret;
+	//char **paths;
+//这里也可以用GetDevices来得到设备
+	/* Call ListConnections D-Bus method */
+	ret = g_dbus_proxy_call_sync (proxy,
+	  "Get",
+	//g_variant_new ("(a{sa{sv}})", &connection_builder),
+	  g_variant_new ("(ss)", "org.freedesktop.NetworkManager","AllDevices"),
+	  //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
+	  //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","Version"),
+	  G_DBUS_CALL_FLAGS_NONE, -1,
+	  NULL, &error);
+	if (!ret) {
+		g_dbus_error_strip_remote_error (error);
+		g_print ("get failed: %s\n", error->message);
+		g_error_free (error);
+		return FALSE;
+	}
+
+    //status = get_property_r(device_path, "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager.Device", "state",&state, err);
+
+	GVariant *device_value;
+	g_variant_get(ret, "(v)", &device_value);
+
+	g_variant_unref(ret);
+
+	GVariantIter  *iter;
+	//GVariant * item;
+	//iter = g_variant_iter_new(device_value);
+	//g_variant_iter_init(&iter,device_value);
+	//先變成array數組
+	g_variant_get(device_value, "ao", &iter);
+	const char *path;
+	//int j = 0;
+	//然後從數組裏拿
+	while(g_variant_iter_loop(iter, "o", &path))
+	//g_variant_get_type_string(device_value);
+	//for (i = 0; i < g_variant_n_children(device_value); i++)
+	{
+
+        printf("check %s\n", path);
+		//确认这个端口的interface是要查找的
+		//status = is_wifi(path, iface);
+		char interface[100]={};
+    	status = get_property(path, "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager.Device", "Interface", interface, err);
+
+		if(status == TRUE)
+		{
+			if(strcmp(interface, iface) == 0)
+			{
+				strcpy(device_path,path);
+				g_print("get hw interface %s\n", device_path);
+				found = TRUE;
+            	break;
+			}
+            
+		}
+	}
+	//凡是指針都要釋放
+	g_variant_iter_free(iter);
+
+	g_object_unref (proxy);
+
+    return found;
+}
 
 /*找到硬件路径*/
 gboolean

@@ -19,6 +19,15 @@ ret返回字符串请设置大于500字节
 	int check_connectivity(const char *iface, const char *ssid, const char *ip, char * ret);
 5. (option)删除所有这个ssid的连接
 	int remove_conn(const char *ssid, char *ret);  
+6. 获取当前某个接口的网络状态
+    int check_signal(const char * iface, char *ret)
+    iface分为 有线网络 wifi 4g网络等等，需要明确地给出接口名
+    比如有线网络eth0 wifi是wlp3s0，4g的接口wwp0s20f0u6c2 诸如此类
+    返回值：1. 有线网络 返回ping baidu的时间
+        2. wifi 返回 wifi 信号，以及 ping baidu的时间
+        3. 4g 返回 4g网络的信号，以及 ping baidu的时间
+    如果当前这个接口有任何问题，会通过ret返回错误
+    不断监听网络状态，需要建立一个线程了
 
 ### 版本说明
 v1.2 2019-11-18
@@ -42,3 +51,9 @@ disconn之后，即使有wifi是auto的，也不会自动连上
     但是nmcli dev wifi就不能搜索热点了，因为现在本身是热点模式
     建议每次开机调用一次，待实现
 5. 对外增加测试信号强度的接口get_signal(const char * ssid, char * signal);
+
+### 安装说明
+sudo apt-get install libnm-dev uuid-dev
+
+### 编译
+gcc -Wall tkwifi.c wifi.c wifi-fun.c -o tkwifi `pkg-config --cflags --libs libnm uuid`

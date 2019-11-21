@@ -33,6 +33,9 @@ gboolean
 get_property(const char *path, const char * if1, const char *method, const char *if2, const char* property, char *value, char *err);
 
 gboolean
+get_property_r(const char *path, const char * if1, const char *method, const char *if2, const char* property, int *value, char *err);
+
+gboolean
 get_active_connection_details (const char *obj_path, const char *ssid);
 
  gboolean
@@ -52,6 +55,10 @@ is_wifi(const char *obj_path, const char *iface);
 
 gboolean
 find_hw(const char *iface);
+
+gboolean
+find_hw_r(const char *iface, char *device_path, char *err);
+
 
 gboolean
 find_ap(const char *iface, char *err);
