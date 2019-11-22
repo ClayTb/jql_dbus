@@ -79,7 +79,6 @@ main (int argc, char *argv[])
         return 1;
     }
     memset(ret, 0, sizeof ret);
-    #if 0
     status = disconnect_wifi(argv[1], ret);
     if(status == 0)
     {
@@ -133,9 +132,8 @@ main (int argc, char *argv[])
     timeuse /= 1000; // 1000 to ms, 1000000 to seconds
     printf("timeuse %fms\n", timeuse);
     sleep(10);
-    #endif
     status = check_signal(argv[1], ret);
-            printf("err code: %d, err msg: %s\n", status, ret);
+    printf("err code: %d, err msg: %s\n", status, ret);
     /*status = remove_conn(argv[2], ret);
     if(status != 0)
     {

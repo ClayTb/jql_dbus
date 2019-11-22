@@ -11,15 +11,19 @@ ar -rcs libtkwifi.a wifi.o wifi-fun.o
 1. 获得库版本
 int get_version(char *ver);
 2. 连接wifi，参数 网口名 ssid 密码 返回具体错误字符串
-int connect_wifi(const char *iface, const char *ssid, const char *pw, char *ret);
+int connect_wifi(const char *iface, const char *ssid, const char *pw, const bool dft_route, char *ret);
 3. 断开当前iface上的wifi连接
 int disconnect_wifi(const char *iface, char *err);
 4. 测试是否连接上，ip为需要测试的网段，比如192.168.4
-int check_connectivity(const char *iface, char * ip, char *err);
+int check_connectivity(const char *iface, const char * ip, char *err);
 5. (option)删除所有这个ssid的连接
 int remove_conn(const char *ssid, char *ret);  
 
 ### 版本说明
+v1.2 2019-11-18
+1. connect_wifi接口增加设置default route选项
+2. 所有接口增加参数无效检测
+
 v1.1 2019-11-12
 1. 内部增加使能wifi功能 Done
 2. 内部增加检查wifi iface为指定wlp3s0功能 Done

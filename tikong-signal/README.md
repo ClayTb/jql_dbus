@@ -1,4 +1,5 @@
 # dbus
+这是专门用来测试电梯控制设备eth0的代码
 tikong-cmd: 里面是命令行的代码
 tikong：里面是使用dbus的代码
 网卡名 ssid 密码 buf(抛异常c++) 
@@ -21,12 +22,12 @@ ret返回字符串请设置大于500字节
 	int remove_conn(const char *ssid, char *ret);  
 6. 获取当前某个接口的网络状态
     int check_signal(const char * iface, char *ret)
-    parameter: 
-        iface: 有线网络-eth0 4g-ttyUSB0  wifi-wlp3s0 注意 以实际情况为准  
-    return value：
-        1. 有线网络 如果网络ok，返回ping baidu的时间，否则返回错误值
-        2. wifi 目前请使用 check_connectivity 这个接口
-        3. 4g 如果网络ok，返回ping baidu的时间，否则返回错误值
+    iface分为 有线网络 wifi 4g网络等等，需要明确地给出接口名
+    比如有线网络eth0 wifi是wlp3s0，4g的接口wwp0s20f0u6c2 诸如此类
+    返回值：1. 有线网络 返回ping baidu的时间
+        2. wifi 返回 wifi 信号，以及 ping baidu的时间
+        3. 4g 返回 4g网络的信号，以及 ping baidu的时间
+    如果当前这个接口有任何问题，会通过ret返回错误
     不断监听网络状态，需要建立一个线程了
 
 ### 版本说明

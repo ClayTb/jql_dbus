@@ -11,7 +11,7 @@ int disconnect_wifi(const char *iface, char *ret);
 int check_connectivity(const char *iface, const char *ssid, const char *ip, char * ret);
 //删除这个ssid上所有的连接
 int remove_conn(const char *ssid, char *ret);
-//获取某个网络接口当前状态，如果是4g，
+//获取某个网络接口当前状态
 int check_signal(const char * iface, char *ret);
 //int disable_auto(const char *iface, char *ret);
 //需要更新的连接的路径 属性名 属性的值
