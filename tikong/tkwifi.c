@@ -48,6 +48,8 @@ connect_wifi()
     2.3 如果之前没有连接过，就add_conn
     2.4 active_conn 使能连接
 3. 测试连通性，需要输入测试ip的网段
+
+20191212:增加取得4g信号质量
 */
 
 #include "wifi.h"
@@ -56,6 +58,8 @@ connect_wifi()
 #include <stdbool.h>
 #include <string.h>
 #include <sys/time.h>
+#include <time.h>
+#include "4g.h"
 
 //gcc tkwifi.c libtkwifi.a -o tkwifi -lpthread -lnm -lgio-2.0 -lgobject-2.0 -lglib-2.0 -luuid
 
@@ -71,14 +75,45 @@ main (int argc, char *argv[])
     status = get_version(ret);
     if(status == 0)
     {
-        printf("tk wifi version %s, %ld\n", ret, sizeof(ret));
+        printf("nettool version %s, %ld\n", ret, sizeof(ret));
     }
-    if(argc != 4)
+/*
+    if(argc != 2)
     {
-        printf("input wlp2s0 tikong tikong-4g \n");
+        //printf("input wlp2s0 tikong tikong-4g \n");
+        printf("./nettool ttyUSB0\n");
         return 1;
-    }
+    }*/
     memset(ret, 0, sizeof ret);
+    char buffer[33]={};
+    struct timeval tv;
+    time_t curtime;
+    //写入文件
+    FILE *fp;
+    while(1)
+    {
+        //status = check_4g_signal(argv[1], ret);
+        status = check_4g_signal("ttyUSB2", ret);
+        if(status == 0)
+        {
+            //printf("err code: %d, err msg: %s\n", status, ret);
+            
+           gettimeofday(&tv, NULL);
+           curtime = tv.tv_sec;
+           strftime(buffer, 30, "%Y-%m-%d-%T: ", localtime(&curtime));
+            fp = fopen("/tmp/signal.txt", "a");
+
+           fputs(buffer, fp);
+           fprintf(fp, "signal strength %s\n", ret);
+            fclose(fp);
+
+           //fputs("This is testing for fputs...\n", fp);
+           
+        }
+        sleep(2);
+    }
+
+    #if 0
     status = disconnect_wifi(argv[1], ret);
     if(status == 0)
     {
@@ -139,6 +174,7 @@ main (int argc, char *argv[])
     {
         printf("%s\n", ret);
     }*/
+    #endif
     return 0;
 }
 //===========测试程序结束=========
