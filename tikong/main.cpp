@@ -11,7 +11,6 @@ v1.0 2019-11-5
 v1.1 2019-11-21
 sudo apt-get install libnm-dev uuid-dev
 
-
 */
 
 
@@ -50,16 +49,18 @@ connect_wifi()
 3. 测试连通性，需要输入测试ip的网段
 
 20191212:增加取得4g信号质量
+
+2020-1-2：增加开启wifi热点功能  
 */
 
 #include "wifi.h"
+#include "ap.h"
 #include "stdio.h"
 #include "unistd.h"
 #include <stdbool.h>
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
-#include "4g.h"
 
 //gcc tkwifi.c libtkwifi.a -o tkwifi -lpthread -lnm -lgio-2.0 -lgobject-2.0 -lglib-2.0 -luuid
 
@@ -77,18 +78,57 @@ main (int argc, char *argv[])
     {
         printf("nettool version %s, %ld\n", ret, sizeof(ret));
     }
-/*
-    if(argc != 2)
+
+    if(argc != 4)
     {
-        //printf("input wlp2s0 tikong tikong-4g \n");
-        printf("./nettool ttyUSB0\n");
+        printf("./nettool wlp2s0 ssid password\n");
+        //printf("./nettool ttyUSB0\n");
         return 1;
-    }*/
+    }
+
     memset(ret, 0, sizeof ret);
     char buffer[33]={};
     struct timeval tv;
     time_t curtime;
+
+//1. 断连现有wifi
+    status = disconnect_wifi(argv[1], ret);
+    if(status == 0)
+    {
+        printf("disconnet wifi\n");
+    }
+    else
+    {
+        printf("err code: %d, err msg: %s\n", status, ret);
+    }
+    memset(ret, 0, sizeof ret);
+    //计算时间开始
+    gettimeofday(&start, 0);
+//2. 使能ap热点ssid，connect_wifi内部会先去检测这个ssid是否已经存在，
+    //已经存在的话就active，不存在的话就先建立
+    status = connect_ap(argv[1], argv[2], argv[3], ret);
+    if(status != 0)
+    {
+        printf("err code: %d, err msg: %s\n", status, ret);
+        return 2;
+    }
+
+    memset(ret, 0, sizeof ret);
+
+    //计算时间结束
+    gettimeofday(&end, 0);
+    double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    timeuse /= 1000; // 1000 to ms, 1000000 to seconds
+    printf("timeuse %fms\n", timeuse);
+
+
+    return 0;
+}
+//===========测试程序结束=========
+
+//备用代码
     //写入文件
+    /*
     FILE *fp;
     while(1)
     {
@@ -111,42 +151,9 @@ main (int argc, char *argv[])
            
         }
         sleep(2);
-    }
-
-    #if 0
-    status = disconnect_wifi(argv[1], ret);
-    if(status == 0)
-    {
-        printf("disconnet wifi\n");
-    }
-    else
-    {
-        printf("err code: %d, err msg: %s\n", status, ret);
-    }
-    memset(ret, 0, sizeof ret);
-    //disable 
-    //status = disable_auto(ret);
-    //status = list_connections(argv[2], ret);
-    //printf("%s\n", ret);
-    //memset(ret, 0, sizeof ret);    
-    //status = update_property("/org/freedesktop/NetworkManager/Settings/9", property, "false", ret);
-
-    //计算时间开始
-    gettimeofday(&start, 0);
-    //connect_wifi(argv[1], ret);
-    //dft_route 无特殊情况设置为0
-
-    status = connect_wifi(argv[1], argv[2], argv[3], 1, ret);
-    if(status != 0)
-    {
-        printf("err code: %d, err msg: %s\n", status, ret);
-        return 2;
-    }
-
-    //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
-    memset(ret, 0, sizeof ret);
-
-    int try = 0;
+    }*/
+/*
+   int try = 0;
     while(try < 20)
     {
         status = check_connectivity(argv[1], argv[2], "192.168.1.", ret);
@@ -161,20 +168,15 @@ main (int argc, char *argv[])
             sleep(1.5);
         }
     }
-    //计算时间结束
-    gettimeofday(&end, 0);
-    double timeuse = 1000000*(end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    timeuse /= 1000; // 1000 to ms, 1000000 to seconds
-    printf("timeuse %fms\n", timeuse);
-    sleep(10);
-    status = check_signal(argv[1], ret);
-    printf("err code: %d, err msg: %s\n", status, ret);
+    */
+
+    //这里如果一连上就去ping会出现connect: Network is unreachable,实际上在命令行是可以ping通的
+   // sleep(10);
     /*status = remove_conn(argv[2], ret);
     if(status != 0)
     {
         printf("%s\n", ret);
     }*/
-    #endif
-    return 0;
-}
-//===========测试程序结束=========
+
+//    status = check_signal(argv[1], ret);
+//    printf("err code: %d, err msg: %s\n", status, ret);

@@ -18,7 +18,7 @@
 # The executable file name. 
 # It must be specified. 
 # PROGRAM   := a.out    # the executable name 
-PROGRAM   := tkwifi
+PROGRAM   := nettool
 
 # The directories in which source files reside. 
 # At least one path should be specified. 
@@ -60,7 +60,7 @@ LDFLAGS   +=
 CC      = gcc 
 #CC       = g++
 # The C++ program compiler. Uncomment it to specify yours explicitly. 
-#CXX     = g++ 
+CXX     = g++ 
 
 # Uncomment the 2 lines to compile C programs as C++ ones. 
 #CC      = $(CXX) 

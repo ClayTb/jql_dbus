@@ -17,6 +17,7 @@ test on ubuntu 16.04
 #include <stdlib.h>
 #include <stdio.h>
 
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -407,6 +408,7 @@ int list_connections(const char *ssid, char *err)
 }
 
 /*6. 测试网络连通性函数 check_connectivity()*/
+//这个函数先判断目前这个网卡上是否有活动连接，如果有，就去ping一个固定ip
 
 //这里如果一连上就去ping会出现connect: Network is unreachable
 
@@ -546,8 +548,6 @@ check_connectivity(const char *iface, const char * ssid, const char *ip, char * 
 } 
 
 
-
-//void connect_wifi(const char *ssid, char *ret)
 int connect_wifi(const char *iface, const char *ssid, const char *pw, const int dft_route, char *ret)
 { 
 
@@ -639,7 +639,7 @@ int get_version(char *ver)
 	{
 		return 2;
 	}
-	strcpy(ver, "1.2");
+	strcpy(ver, "1.3");
 	return 0;
 }
 

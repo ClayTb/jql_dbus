@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+//最复杂的一次解析
 int check_4g_signal(const char * iface, char *err)
 {
 //	gboolean 

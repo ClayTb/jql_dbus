@@ -680,7 +680,6 @@ find_hw_r(const char *iface, char * device_path, char* err)
 	/* Call ListConnections D-Bus method */
 	ret = g_dbus_proxy_call_sync (proxy,
 	  "Get",
-	//g_variant_new ("(a{sa{sv}})", &connection_builder),
 	  g_variant_new ("(ss)", "org.freedesktop.NetworkManager","AllDevices"),
 	  //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","NetworkingEnabled"),
 	  //g_variant_new ("(ss)", "org.freedesktop.NetworkManager","Version"),
@@ -708,15 +707,13 @@ find_hw_r(const char *iface, char * device_path, char* err)
 	g_variant_get(device_value, "ao", &iter);
 	const char *path;
 	//int j = 0;
-	//然後從數組裏拿
+	//然后从数组里看
 	while(g_variant_iter_loop(iter, "o", &path))
 	//g_variant_get_type_string(device_value);
 	//for (i = 0; i < g_variant_n_children(device_value); i++)
 	{
 
         printf("check %s\n", path);
-		//确认这个端口的interface是要查找的
-		//status = is_wifi(path, iface);
 		char interface[100]={};
     	status = get_property(path, "org.freedesktop.DBus.Properties", "Get", "org.freedesktop.NetworkManager.Device", "Interface", interface, err);
 
@@ -819,7 +816,6 @@ find_hw(const char *iface)
     return found;
 }
 
-/*connect_wifi -> active_conn*/
  gboolean
 active_conn(char *err)
 {
