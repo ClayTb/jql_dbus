@@ -69,7 +69,7 @@ int
 main (int argc, char *argv[])
 {
 
-    int status;
+    int status = -1;
     //缓冲区大于500字节
     char ret[501]={};
     struct timeval start, end;
@@ -100,6 +100,7 @@ main (int argc, char *argv[])
     else
     {
         printf("err code: %d, err msg: %s\n", status, ret);
+        return 2;
     }
     memset(ret, 0, sizeof ret);
     //计算时间开始

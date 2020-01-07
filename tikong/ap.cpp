@@ -50,6 +50,7 @@ int connect_ap(const char *iface, const char *ssid, const char *pw, char *ret)
     {
         printf("found ap ssid\n");  
     }
+    
     else if(status == FALSE)
     {
     	printf("need establish %s connection\n", ssid);
@@ -67,6 +68,7 @@ int connect_ap(const char *iface, const char *ssid, const char *pw, char *ret)
     	}
     }
     //enable wifi connection
+    
     status = active_ap_conn(device_path, link_path, ret); 
     if(status == TRUE)
     {

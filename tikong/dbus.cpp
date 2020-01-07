@@ -257,13 +257,14 @@ Object path of the new connection that was just added.
     g_variant_builder_add (&setting_builder, "{sv}",
                             //"type"
                          NM_SETTING_CONNECTION_AUTOCONNECT,
-                         g_variant_new_boolean (FALSE)); 
+                         //设置ap自动连接为true
+                         g_variant_new_boolean (TRUE)); 
     
-  g_variant_builder_add (&connection_builder, "{sa{sv}}",
+    g_variant_builder_add (&connection_builder, "{sa{sv}}",
                          NM_SETTING_CONNECTION_SETTING_NAME,
                          &setting_builder);
 
-    /*2.  Add the (empty) 'wireless' Setting */
+    /*2.  Add the 'wireless' Setting */
     g_variant_builder_init (&setting_builder, G_VARIANT_TYPE ("a{sv}"));
     //GVariantBuilder *builder;
     g_variant_builder_add (&setting_builder, "{sv}",
@@ -279,7 +280,7 @@ Object path of the new connection that was just added.
     strcat(cmd, "/address");
     string buf = exec(cmd);
     buf.pop_back();
-    cout << buf << endl;
+    //cout << buf << endl;
     int mac[6];
     //unsigned char mac[6];
     sscanf(buf.c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
@@ -304,10 +305,22 @@ Object path of the new connection that was just added.
     g_variant_builder_add (&setting_builder, "{sv}",
                            //"ssid" GArray_guchar_ *
                            NM_SETTING_WIRELESS_SSID,
-                           value);                                                                                  
+                           value);     
+    //seen-bssids 是一个as结构
+    builder = g_variant_builder_new (G_VARIANT_TYPE ("as"));
+    g_variant_builder_add (builder, "s", "D8:F2:CA:5D:B9:F2");
+    value = g_variant_new ("as", builder);
+    //value = g_variant_new ("s", "D8:F2:CA:5D:B9:F2");
+    g_variant_builder_unref (builder);
+    g_variant_builder_add (&setting_builder, "{sv}",
+                           NM_SETTING_WIRELESS_SEEN_BSSIDS,
+                           value);                                                                             
     g_variant_builder_add (&connection_builder, "{sa{sv}}",
                          NM_SETTING_WIRELESS_SETTING_NAME,
                          &setting_builder);
+
+    //g_variant_unref (value);
+
 
     /*3. Build up the 'wifi-security' Setting */
     g_variant_builder_init (&setting_builder, G_VARIANT_TYPE ("a{sv}"));
@@ -323,17 +336,30 @@ Object path of the new connection that was just added.
                          &setting_builder);
     
     
-  /* Build up the 'ipv4' Setting */
+  /*4. Build up the 'ipv4' Setting */
   g_variant_builder_init (&setting_builder, G_VARIANT_TYPE ("a{sv}"));
   g_variant_builder_add (&setting_builder, "{sv}",
                          NM_SETTING_IP_CONFIG_METHOD,
-                         g_variant_new_string (NM_SETTING_IP4_CONFIG_METHOD_AUTO));
+                         //ap模式设置成shared
+                         g_variant_new_string (NM_SETTING_IP4_CONFIG_METHOD_SHARED));
 
 
     g_variant_builder_add (&connection_builder, "{sa{sv}}",
                          NM_SETTING_IP4_CONFIG_SETTING_NAME,
                          &setting_builder);
 
+      /* Build up the 'ipv6' Setting 目前不支持*/ 
+    /*
+    g_variant_builder_init (&setting_builder, G_VARIANT_TYPE ("a{sv}"));
+    g_variant_builder_add (&setting_builder, "{sv}",
+                         NM_SETTING_IP_CONFIG_METHOD,
+                         //ap模式设置成shared
+                         g_variant_new_string (NM_SETTING_IP6_CONFIG_METHOD_SHARED));
+
+
+    g_variant_builder_add (&connection_builder, "{sa{sv}}",
+                         NM_SETTING_IP6_CONFIG_SETTING_NAME,
+                         &setting_builder);*/
   /* Call AddConnection with the connection dictionary as argument.
    * (g_variant_new() will consume the floating GVariant returned from
    * &connection_builder, and g_dbus_proxy_call_sync() will consume the
