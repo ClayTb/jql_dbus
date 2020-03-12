@@ -2,7 +2,7 @@
 /*gcc `pkg-config --cflags glib-2.0 gio-2.0` -o bt bt-dbus.c `pkg-config --libs glib-2.0 gio-2.0`*/
 #include "dbus-fun.h"
 
-int get_bt(void)
+int get_bt(char *buf)
 {
 	int rc = 0;
 	GDBusProxy *proxy;
@@ -14,7 +14,10 @@ int get_bt(void)
 
 	conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
 	if(error != NULL)
+    {
+        strcpy(buf, error->message);
 		return 1;
+    }
 
 	proxy = g_dbus_proxy_new_sync(conn,
 				      G_DBUS_PROXY_FLAGS_NONE,
@@ -27,7 +30,10 @@ int get_bt(void)
 				      NULL,
 				      &error);
 	if(error != NULL)
-		return 1;
+    {
+        strcpy(buf, error->message);
+		return 2;
+    }
 
 	error = NULL;
 	result = g_dbus_proxy_call_sync(proxy,
@@ -39,7 +45,10 @@ int get_bt(void)
 					NULL,
 					&error);
 	if(error != NULL)
-		return 1;
+    {
+        strcpy(buf, error->message);
+		return 3;
+    }
 
 	/* Parse the result */
     /*在wifi的程序里直接使用的是g_variant_get(device_value, "ao", &iter);
@@ -83,8 +92,8 @@ int get_bt(void)
 		g_variant_unref(result);
 	}
 
-fail:
-	rc = 1;
+//fail:
+//	rc = 1;
 done:
 	if(proxy)
 		g_object_unref(proxy);
@@ -93,7 +102,8 @@ done:
 	if(error)
 		g_error_free(error);
 
-	return rc;
+	//return rc;
+    return 0;
 }
 
 int start_bt(void)
@@ -104,4 +114,19 @@ int start_bt(void)
     bluez_adapter_set_property("Powered", g_variant_new("b", TRUE));
     //3. 不需要开始查找蓝牙，而是让其他设备来发现树莓派
     
+}
+
+int get_version(char *ver)
+{
+    if(ver == NULL)
+    {
+        return 1;
+    }
+    if(sizeof(ver) < 5)
+    {
+        strcpy(ret,"返回buf太小，需要大于500字节"); //错误1
+        return 2;
+    }
+    strcpy(ver, "1.2");
+    return 0;
 }

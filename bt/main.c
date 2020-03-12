@@ -19,14 +19,25 @@ gcc `pkg-config --cflags glib-2.0 gio-2.0` -o bt bt.c bt-dbus.c dbus-fun.c `pkg-
 int
 main (int argc, char *argv[])
 {
-    int found = -1;
-    found = get_bt();
-    //g_print("%d\n", found);
-    if(found == 0)
+    int status = -1;
+    //缓冲区大于500字节
+    char ret[501]={};
+    status = get_version(ret);
+    if(status == 0)
     {
-        g_print("found bluetooth\n");
-        start_bt();
+        printf("bluetooth tool version %s, %ld\n", ret, sizeof(ret));
     }
+    int found = -1;
+    found = get_bt(ret);
+    if(found != 0)
+    {
+        g_print("%s\n", ret);
+        return 1;
+    }
+
+    g_print("found bluetooth\n");
+    status = start_bt(ret);
+    
         
     return 0;
 }
