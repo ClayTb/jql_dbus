@@ -1,6 +1,7 @@
 # dbus
-tikong-cmd: 里面是命令行的代码
+tikong-cmd: 里面是命令行和机器人通信的代码
 tikong：里面是使用dbus的代码
+tikong-signal:是测试wifi信号的代码
 网卡名 ssid 密码 buf(抛异常c++) 
 ar -rcs libtkwifi.a wifi.o wifi-fun.o 
 
