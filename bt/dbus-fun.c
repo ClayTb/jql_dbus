@@ -65,7 +65,7 @@ int bluez_adapter_call_method(const char *method)
 	GVariant *result;
 	GError *error = NULL;
 
-	result = g_dbus_connection_call_sync(con,
+	result = g_dbus_connection_call_sync(conn,
 					     "org.bluez",
 					/* TODO Find the adapter path runtime */
 					     "/org/bluez/hci0",

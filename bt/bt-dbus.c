@@ -124,7 +124,7 @@ int get_version(char *ver)
     }
     if(sizeof(ver) < 5)
     {
-        strcpy(ret,"返回buf太小，需要大于500字节"); //错误1
+        //strcpy(ret,"返回buf太小，需要大于500字节"); //错误1
         return 2;
     }
     strcpy(ver, "1.2");
